@@ -16,7 +16,7 @@ trait Retrievable
 
         return $this->select(columns: $columns)
             ->filters(
-                filters: Arr::get($options, 'filters', [])
+                filters: Arr::get($options, 'filters')
             )
             ->scopes(
                 scopes: Arr::get($options, 'scopes')

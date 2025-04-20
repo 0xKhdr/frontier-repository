@@ -1,21 +1,21 @@
 {
-	"name": "frontier/action",
-	"description": "Laravel Frontier Actions Package",
+	"name": "frontier/repository",
+	"description": "Laravel Frontier Repositories Package",
 	"type": "library",
 	"version": "1.0",
 	"license": "MIT",
 	"require": {},
 	"autoload": {
 		"psr-4": {
-			"Frontier\\Actions\\": "src/",
-			"Frontier\\Actions\\Tests\\": "tests/"
+			"Frontier\\Repositories\\": "src/",
+			"Frontier\\Repositories\\Tests\\": "tests/"
 		}
 	},
 	"minimum-stability": "stable",
 	"extra": {
 		"laravel": {
 			"providers": [
-                "Frontier\\Actions\\Providers\\ServiceProvider"
+                "Frontier\\Repositories\\Providers\\ServiceProvider"
 			]
 		}
 	}

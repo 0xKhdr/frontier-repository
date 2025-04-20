@@ -173,7 +173,7 @@ trait Retrievable
             return Str::afterLast($column, '@');
         }
 
-        return $this->getModel()->getTable().'src'.$column;
+        return $this->getModel()->getTable().'.'.$column;
     }
 
     protected function validateRawExpression(string $expression): string

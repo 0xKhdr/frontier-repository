@@ -3,9 +3,9 @@
 namespace Frontier\Repositories;
 
 use Frontier\Actions\AbstractAction as FrontierAbstractAction;
-use Frontier\Repositories\Contracts\Repository;
+use Frontier\Repositories\Contracts\EloquentRepository;
 
 class AbstractRepositoryAction extends FrontierAbstractAction
 {
-    protected Repository $repository;
+    protected EloquentRepository $repository;
 }

@@ -16,10 +16,7 @@ trait Retrievable
 
         return $this->select(columns: $columns)
             ->filters(
-                filters: Arr::except(
-                    Arr::get($options, 'filters', []),
-                    ['sort', 'direction', 'offset', 'per_page']
-                )
+                filters: Arr::get($options, 'filters', [])
             )
             ->scopes(
                 scopes: Arr::get($options, 'scopes')
@@ -34,20 +31,12 @@ trait Retrievable
                 distinct: Arr::get($options, 'distinct', false)
             )
             ->sort(
-                sort: Arr::get(
-                    $options,
-                    'filters.sort',
-                    config('app.order_by.column')
-                ),
-                direction: Arr::get(
-                    $options,
-                    'filters.direction',
-                    config('app.order_by.direction')
-                )
+                sort: Arr::get($options, 'sort', config('app.order_by.column')),
+                direction: Arr::get($options, 'direction', config('app.order_by.direction'))
             )
             ->offset(
-                offset: Arr::get($options, 'filters.offset'),
-                limit: Arr::get($options, 'filters.per_page', -1)
+                limit: Arr::get($options, 'per_page', -1),
+                offset: Arr::get($options, 'offset')
             )
             ->with(
                 relations: Arr::get($options, 'with')
@@ -163,7 +152,7 @@ trait Retrievable
         return $this;
     }
 
-    protected function offset(?int $offset, int $limit): static
+    protected function offset(int $limit, ?int $offset): static
     {
         if ($offset) {
             $this->builder->offset($offset);

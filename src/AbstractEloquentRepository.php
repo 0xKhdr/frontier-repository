@@ -41,7 +41,7 @@ abstract class AbstractEloquentRepository extends AbstractRepository implements 
         string $pageName = 'page',
         ?int $page = null
     ): LengthAwarePaginator {
-        $perPage = intval(Arr::get($options, 'filters.per_page', $this->getModel()->getPerPage()));
+        $perPage = intval(Arr::get($options, 'per_page', $this->getModel()->getPerPage()));
 
         return $this->getRetrieveQuery($columns, $options)
             ->paginate($perPage, $columns, $pageName, $page);

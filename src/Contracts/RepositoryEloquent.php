@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Throwable;
 
-interface EloquentRepository extends Repository
+interface RepositoryEloquent extends Repository
 {
     /**
      * Create a new model record with the given values

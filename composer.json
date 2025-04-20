@@ -1,0 +1,22 @@
+{
+	"name": "frontier/action",
+	"description": "Laravel Frontier Actions Package",
+	"type": "library",
+	"version": "1.0",
+	"license": "MIT",
+	"require": {},
+	"autoload": {
+		"psr-4": {
+			"Frontier\\Actions\\": "src/",
+			"Frontier\\Actions\\Tests\\": "tests/"
+		}
+	},
+	"minimum-stability": "stable",
+	"extra": {
+		"laravel": {
+			"providers": [
+                "Frontier\\Actions\\Providers\\ServiceProvider"
+			]
+		}
+	}
+}

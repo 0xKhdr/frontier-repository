@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/0xKhdr/frontier-action.git",
-                "reference": "69b11224db4a61a9a3518c72064996102a6b5e7b"
+                "reference": "02ede34ebdc3ac0931d35852a8a22d3febc48767"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/0xKhdr/frontier-action/zipball/69b11224db4a61a9a3518c72064996102a6b5e7b",
-                "reference": "69b11224db4a61a9a3518c72064996102a6b5e7b",
+                "url": "https://api.github.com/repos/0xKhdr/frontier-action/zipball/02ede34ebdc3ac0931d35852a8a22d3febc48767",
+                "reference": "02ede34ebdc3ac0931d35852a8a22d3febc48767",
                 "shasum": ""
             },
             "default-branch": true,
@@ -44,7 +44,7 @@
                 "issues": "https://github.com/0xKhdr/frontier-action/issues",
                 "source": "https://github.com/0xKhdr/frontier-action/tree/main"
             },
-            "time": "2025-04-20T12:30:09+00:00"
+            "time": "2025-04-20T15:59:46+00:00"
         }
     ],
     "packages-dev": [

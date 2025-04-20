@@ -4,7 +4,9 @@
 	"type": "library",
 	"version": "1.0",
 	"license": "MIT",
-	"require": {},
+	"require": {
+		"frontier/action": "dev-main"
+	},
 	"autoload": {
 		"psr-4": {
 			"Frontier\\Repositories\\": "src/",

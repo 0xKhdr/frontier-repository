@@ -1,0 +1,61 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "15a1db12c7cfc79e3bbb74e5e249bdee",
+    "packages": [
+        {
+            "name": "frontier/action",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/0xKhdr/frontier-action.git",
+                "reference": "69b11224db4a61a9a3518c72064996102a6b5e7b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/0xKhdr/frontier-action/zipball/69b11224db4a61a9a3518c72064996102a6b5e7b",
+                "reference": "69b11224db4a61a9a3518c72064996102a6b5e7b",
+                "shasum": ""
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Frontier\\Actions\\Providers\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Frontier\\Actions\\": "src/",
+                    "Frontier\\Actions\\Tests\\": "tests/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Laravel Frontier Actions Package",
+            "support": {
+                "issues": "https://github.com/0xKhdr/frontier-action/issues",
+                "source": "https://github.com/0xKhdr/frontier-action/tree/main"
+            },
+            "time": "2025-04-20T12:30:09+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "frontier/action": 20
+    },
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
+}

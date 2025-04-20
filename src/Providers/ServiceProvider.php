@@ -1,6 +1,6 @@
 <?php
 
-namespace Frontier\Actions\Providers;
+namespace Frontier\Repositories\Providers;
 
 use Illuminate\Support\ServiceProvider as IlluminateServiceProvider;
 

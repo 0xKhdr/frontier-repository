@@ -7,7 +7,7 @@
 	"require": {
 		"php": ">=8.2",
 		"laravel/laravel": "^11.0|^12.0",
-		"frontier/action": "dev-main"
+		"frontier/action": "*"
 	},
 	"require-dev": {
 		"laravel/pint": "^v1.22.0"

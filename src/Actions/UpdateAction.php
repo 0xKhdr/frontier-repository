@@ -2,9 +2,9 @@
 
 namespace Frontier\Repositories\Actions;
 
-use Frontier\Repositories\AbstractRepositoryAction;
+use Frontier\Repositories\RepositoryAction;
 
-class UpdateAction extends AbstractRepositoryAction
+class UpdateAction extends RepositoryAction
 {
     public function handle(array $conditions, array $values): int
     {

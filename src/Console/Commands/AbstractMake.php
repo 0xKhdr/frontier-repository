@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Pluralizer;
 
+use function Laravel\Prompts\alert;
 use function Laravel\Prompts\info;
 
 abstract class AbstractMake extends Command
@@ -29,7 +30,7 @@ abstract class AbstractMake extends Command
             File::put($path, $contents);
             info(sprintf('%s created', $path));
         } else {
-            info(sprintf('%s already exists', $path));
+            alert(sprintf('%s already exists', $path));
         }
     }
 

@@ -2,7 +2,7 @@
 
 namespace $NAMESPACE$;
 
-use Frontier\Repositories\AbstractRepositoryEloquent as FrontierRepository;
+use Frontier\Repositories\RepositoryEloquent as FrontierRepository;
 
 class $CLASS_NAME$ extends FrontierRepository
 {

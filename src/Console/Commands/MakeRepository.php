@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\App;
 
 class MakeRepository extends AbstractMake
 {
-    protected $signature = 'frontier:repository {name}';
+    protected $signature = 'frontier:repository {name} {--type=eloquent}';
 
     protected $description = 'Create a new repository class';
 
@@ -17,7 +17,7 @@ class MakeRepository extends AbstractMake
 
     public function getStubPath(): string
     {
-        return __DIR__.'/../../../resources/stubs/repository.stub';
+        return __DIR__.'/../../../resources/stubs/repository-eloquent.stub';
     }
 
     public function getStubVariables(): array

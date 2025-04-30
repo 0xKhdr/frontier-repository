@@ -2,10 +2,10 @@
 
 namespace Frontier\Repositories\Actions;
 
-use Frontier\Repositories\AbstractRepositoryAction;
+use Frontier\Repositories\RepositoryAction;
 use Illuminate\Database\Eloquent\Model;
 
-class UpdateOrCreateAction extends AbstractRepositoryAction
+class UpdateOrCreateAction extends RepositoryAction
 {
     public function handle(array $conditions, array $values): Model
     {

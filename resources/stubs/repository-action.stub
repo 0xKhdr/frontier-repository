@@ -2,7 +2,7 @@
 
 namespace $NAMESPACE$;
 
-use Frontier\Repositories\AbstractRepositoryAction as FrontierAction;
+use Frontier\Repositories\RepositoryAction as FrontierAction;
 
 class $CLASS_NAME$ extends FrontierAction
 {

@@ -2,9 +2,9 @@
 
 namespace Frontier\Repositories\Actions;
 
-use Frontier\Repositories\AbstractRepositoryAction;
+use Frontier\Repositories\RepositoryAction;
 
-class ExistsAction extends AbstractRepositoryAction
+class ExistsAction extends RepositoryAction
 {
     public function handle(array $conditions): bool
     {

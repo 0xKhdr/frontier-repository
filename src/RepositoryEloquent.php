@@ -10,7 +10,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Throwable;
 
-abstract class AbstractRepositoryEloquent extends AbstractRepository implements Contracts\RepositoryEloquent
+abstract class RepositoryEloquent extends AbstractRepository implements Contracts\RepositoryEloquent
 {
     use Retrievable;
 

@@ -2,11 +2,8 @@
 
 namespace $NAMESPACE$;
 
-use Frontier\Actions\EloquentAction as FrontierAction;
+use Frontier\Repositories\AbstractRepositoryEloquent as FrontierRepository;
 
-class $CLASS_NAME$ extends FrontierAction
+class $CLASS_NAME$ extends FrontierRepository
 {
-    public function handle()
-    {
-    }
 }

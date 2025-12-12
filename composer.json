@@ -1,31 +1,46 @@
 {
-	"name": "frontier/repository",
-	"description": "Laravel Frontier Repositories Package",
-	"type": "library",
-	"version": "1.0",
-	"license": "MIT",
-	"require": {
-		"php": ">=8.2",
-		"illuminate/support": "^10.0|^11.0|^12.0",
-		"illuminate/console": "^10.0|^11.0|^12.0",
-		"illuminate/database": "^10.0|^11.0|^12.0",
-		"frontier/action": "*"
-	},
-	"require-dev": {
-		"laravel/pint": "^v1.22.0"
-	},
-	"autoload": {
-		"psr-4": {
-			"Frontier\\Repositories\\": "src/",
-			"Frontier\\Repositories\\Tests\\": "tests/"
-		}
-	},
-	"minimum-stability": "dev",
-	"extra": {
-		"laravel": {
-			"providers": [
-                "Frontier\\Repositories\\Providers\\ServiceProvider"
-			]
-		}
-	}
+  "name": "frontier/repository",
+  "description": "Laravel Frontier Repositories Package",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "repository",
+    "data-access",
+    "frontier"
+  ],
+  "authors": [
+    {
+      "name": "Mohamed Khedr",
+      "email": "0xkhdr@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=8.2",
+    "illuminate/support": "^10.0|^11.0|^12.0",
+    "illuminate/console": "^10.0|^11.0|^12.0",
+    "illuminate/database": "^10.0|^11.0|^12.0",
+    "frontier/action": "^1.0"
+  },
+  "require-dev": {
+    "laravel/pint": "^v1.22.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Frontier\\Repositories\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Frontier\\Repositories\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Frontier\\Repositories\\Providers\\ServiceProvider"
+      ]
+    }
+  }
 }

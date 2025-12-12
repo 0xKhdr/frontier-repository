@@ -117,7 +117,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function retrieve(array $columns = ['*'], array $options = []): Collection
     {
-        return $this->cached('retrieve', compact('columns', 'options'), fn () => $this->repository->retrieve($columns, $options));
+        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn (): \Illuminate\Support\Collection => $this->repository->retrieve($columns, $options));
     }
 
     /**
@@ -128,7 +128,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function retrievePaginate(array $columns = ['*'], array $options = [], string $pageName = 'page', ?int $page = null): LengthAwarePaginator
     {
-        return $this->cached('retrievePaginate', compact('columns', 'options', 'pageName', 'page'), fn () => $this->repository->retrievePaginate($columns, $options, $pageName, $page));
+        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'pageName' => $pageName, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $pageName, $page));
     }
 
     /**
@@ -139,7 +139,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function find(array $conditions, array $columns = ['*']): ?Model
     {
-        return $this->cached('find', compact('conditions', 'columns'), fn () => $this->repository->find($conditions, $columns));
+        return $this->cached('find', ['conditions' => $conditions, 'columns' => $columns], fn (): ?\Illuminate\Database\Eloquent\Model => $this->repository->find($conditions, $columns));
     }
 
     /**
@@ -150,7 +150,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function findOrFail(array $conditions, array $columns = ['*']): Model
     {
-        return $this->cached('findOrFail', compact('conditions', 'columns'), fn () => $this->repository->findOrFail($conditions, $columns));
+        return $this->cached('findOrFail', ['conditions' => $conditions, 'columns' => $columns], fn (): \Illuminate\Database\Eloquent\Model => $this->repository->findOrFail($conditions, $columns));
     }
 
     /**
@@ -160,7 +160,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function count(array $conditions = []): int
     {
-        return $this->cached('count', compact('conditions'), fn () => $this->repository->count($conditions));
+        return $this->cached('count', ['conditions' => $conditions], fn (): int => $this->repository->count($conditions));
     }
 
     /**
@@ -170,7 +170,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function exists(array $conditions): bool
     {
-        return $this->cached('exists', compact('conditions'), fn () => $this->repository->exists($conditions));
+        return $this->cached('exists', ['conditions' => $conditions], fn (): bool => $this->repository->exists($conditions));
     }
 
     /**
@@ -180,7 +180,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function create(array $values): Model
     {
-        return tap($this->repository->create($values), fn () => $this->clearCache());
+        return tap($this->repository->create($values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -191,7 +191,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function update(array $conditions, array $values): int
     {
-        return tap($this->repository->update($conditions, $values), fn () => $this->clearCache());
+        return tap($this->repository->update($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -201,7 +201,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function delete(array $conditions): int
     {
-        return tap($this->repository->delete($conditions), fn () => $this->clearCache());
+        return tap($this->repository->delete($conditions), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -212,7 +212,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function updateOrCreate(array $conditions, array $values): Model
     {
-        return tap($this->repository->updateOrCreate($conditions, $values), fn () => $this->clearCache());
+        return tap($this->repository->updateOrCreate($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -222,7 +222,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function insert(array $values): bool
     {
-        return tap($this->repository->insert($values), fn () => $this->clearCache());
+        return tap($this->repository->insert($values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -232,7 +232,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function insertGetId(array $values): int
     {
-        return tap($this->repository->insertGetId($values), fn () => $this->clearCache());
+        return tap($this->repository->insertGetId($values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -243,7 +243,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function firstOrCreate(array $conditions, array $values = []): Model
     {
-        return tap($this->repository->firstOrCreate($conditions, $values), fn () => $this->clearCache());
+        return tap($this->repository->firstOrCreate($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -255,7 +255,7 @@ class BaseCacheableRepository implements CacheableRepositoryContract, Repository
      */
     public function upsert(array $values, array $uniqueBy, ?array $update = null): int
     {
-        return tap($this->repository->upsert($values, $uniqueBy, $update), fn () => $this->clearCache());
+        return tap($this->repository->upsert($values, $uniqueBy, $update), fn (): bool => $this->clearCache());
     }
 
     /**

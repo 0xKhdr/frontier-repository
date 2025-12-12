@@ -235,7 +235,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function resetBuilder(): static
     {
-        $this->builder = $this->withBuilder
+        $this->builder = $this->withBuilder instanceof \Illuminate\Contracts\Database\Eloquent\Builder
             ? $this->withBuilder->clone()
             : $this->getModel()->newQuery();
 

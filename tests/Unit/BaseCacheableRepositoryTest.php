@@ -35,9 +35,7 @@ describe('BaseCacheableRepository', function (): void {
         $cacheStore->shouldReceive('forget')->never();
         $cacheStore->shouldReceive('remember')
             ->once()
-            ->andReturnUsing(function ($key, $ttl, $callback) {
-                return $callback();
-            });
+            ->andReturnUsing(fn($key, $ttl, $callback) => $callback());
 
         // Test
         $decorator = new BaseCacheableRepository($innerRepo);

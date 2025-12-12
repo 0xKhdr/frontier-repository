@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace $NAMESPACE$;
+
+use Frontier\Repositories\BaseRepository;
+
+class $CLASS_NAME$ extends BaseRepository
+{
+    public function __construct()
+    {
+        // parent::__construct(new Model());
+    }
+}

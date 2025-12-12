@@ -2,11 +2,11 @@
 
 namespace Frontier\Repositories\Actions;
 
-use Frontier\Repositories\RepositoryAction;
+use Frontier\Repositories\BaseAction;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-class RetrieveAction extends RepositoryAction
+class RetrieveAction extends BaseAction
 {
     public function handle(array $columns = ['*'], array $options = []): Collection|LengthAwarePaginator
     {

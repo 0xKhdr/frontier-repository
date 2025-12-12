@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace $NAMESPACE$;
+
+use Frontier\Repositories\BaseAction;
+
+class $CLASS_NAME$ extends BaseAction
+{
+    public function __construct()
+    {
+        // $this->repository = new Repository();
+    }
+
+    public function handle(): mixed
+    {
+        //
+    }
+}

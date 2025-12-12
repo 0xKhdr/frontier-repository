@@ -1,9 +1,0 @@
-<?php
-
-namespace $NAMESPACE$;
-
-use Frontier\Repositories\RepositoryEloquent as FrontierRepository;
-
-class $CLASS_NAME$ extends FrontierRepository
-{
-}

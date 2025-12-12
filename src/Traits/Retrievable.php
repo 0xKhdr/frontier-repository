@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Frontier\Repositories\Traits;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
@@ -7,9 +9,17 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
+/**
+ * Provides fluent query building methods for repositories.
+ */
 trait Retrievable
 {
-    // 1. Primary query builder method (entry point)
+    /**
+     * Build the retrieve query with all options applied.
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
     protected function getRetrieveQuery(array $columns = ['*'], array $options = []): Builder
     {
         $this->resetBuilder();
@@ -41,10 +51,17 @@ trait Retrievable
             ->with(
                 relations: Arr::get($options, 'with')
             )
+            ->withCount(
+                relations: Arr::get($options, 'with_count')
+            )
             ->getBuilder();
     }
 
-    // 2. Core query components
+    /**
+     * Select specific columns.
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     */
     protected function select(array $columns = ['*']): static
     {
         $safeColumns = array_map(function ($column) {
@@ -60,6 +77,11 @@ trait Retrievable
         return $this;
     }
 
+    /**
+     * Apply where conditions.
+     *
+     * @param  array<string, mixed>|null  $conditions  Where conditions
+     */
     protected function where(?array $conditions): static
     {
         if ($conditions) {
@@ -69,7 +91,11 @@ trait Retrievable
         return $this;
     }
 
-    // 3. Filtering and scoping
+    /**
+     * Apply model filters.
+     *
+     * @param  array<string, mixed>|null  $filters  Filter conditions
+     */
     protected function filters(?array $filters): static
     {
         if ($filters) {
@@ -79,6 +105,11 @@ trait Retrievable
         return $this;
     }
 
+    /**
+     * Apply model scopes.
+     *
+     * @param  array<string, mixed>|null  $scopes  Scopes to apply
+     */
     protected function scopes(?array $scopes): static
     {
         if ($scopes) {
@@ -92,7 +123,11 @@ trait Retrievable
         return $this;
     }
 
-    // 4. Joins and relationships
+    /**
+     * Apply join clauses.
+     *
+     * @param  array<string, mixed>|null  $joins  Joins to apply
+     */
     protected function joins(?array $joins): static
     {
         if ($joins) {
@@ -106,6 +141,11 @@ trait Retrievable
         return $this;
     }
 
+    /**
+     * Eager load relationships.
+     *
+     * @param  array<int, string>|null  $relations  Relations to load
+     */
     protected function with(?array $relations): static
     {
         if ($relations) {
@@ -115,7 +155,25 @@ trait Retrievable
         return $this;
     }
 
-    // 5. Grouping and distinct
+    /**
+     * Load relationship counts.
+     *
+     * @param  array<int, string>|null  $relations  Relations to count
+     */
+    protected function withCount(?array $relations): static
+    {
+        if ($relations) {
+            $this->builder->withCount($relations);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Group by columns.
+     *
+     * @param  array<int, string>|null  $groups  Columns to group by
+     */
     protected function groupBy(?array $groups): static
     {
         if ($groups) {
@@ -125,6 +183,9 @@ trait Retrievable
         return $this;
     }
 
+    /**
+     * Enable distinct results.
+     */
     protected function distinct(bool $distinct): static
     {
         if ($distinct) {
@@ -134,16 +195,21 @@ trait Retrievable
         return $this;
     }
 
-    // 6. Sorting and pagination
+    /**
+     * Apply sorting.
+     *
+     * @param  string|array<int, string>|null  $sort  Sort column(s)
+     * @param  string|array<int, string>|null  $direction  Sort direction(s)
+     */
     protected function sort(string|array|null $sort, string|array|null $direction): static
     {
         if ($sort) {
             $sortArray = is_array($sort) ? $sort : [$sort];
             $directionArray = is_array($direction) ? $direction : [$direction];
 
-            foreach ($sortArray as $key => $sort) {
+            foreach ($sortArray as $key => $sortColumn) {
                 $this->builder->orderBy(
-                    $this->prefixTable($sort),
+                    $this->prefixTable($sortColumn),
                     Arr::get($directionArray, $key, $direction ?? 'asc')
                 );
             }
@@ -152,6 +218,9 @@ trait Retrievable
         return $this;
     }
 
+    /**
+     * Apply offset and limit.
+     */
     protected function offset(int $limit, ?int $offset): static
     {
         if ($offset) {
@@ -162,7 +231,9 @@ trait Retrievable
         return $this;
     }
 
-    // 7. Utility methods
+    /**
+     * Prefix column with table name if needed.
+     */
     protected function prefixTable(string $column): string
     {
         if (Str::contains($column, '.')) {
@@ -176,6 +247,11 @@ trait Retrievable
         return $this->getModel()->getTable().'.'.$column;
     }
 
+    /**
+     * Validate raw SQL expression for safety.
+     *
+     * @throws InvalidArgumentException
+     */
     protected function validateRawExpression(string $expression): string
     {
         if (preg_match('/\b(delete|update|insert|drop|alter)\b/i', $expression)) {

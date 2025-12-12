@@ -11,13 +11,13 @@ use InterNACHI\Modular\Support\Facades\Modules;
 use function Laravel\Prompts\select;
 
 /**
- * Artisan command to generate a new repository action class.
+ * Artisan command to generate a new repository interface.
  */
-class MakeRepositoryAction extends GeneratorCommand
+class MakeRepositoryInterface extends GeneratorCommand
 {
-    protected $signature = 'frontier:repository-action {name} {--module= : The module to create the action in}';
+    protected $signature = 'frontier:repository-interface {name} {--module= : The module to create the interface in}';
 
-    protected $description = 'Create a new repository action class';
+    protected $description = 'Create a new repository interface';
 
     protected ?string $selectedModule = null;
 
@@ -123,15 +123,15 @@ class MakeRepositoryAction extends GeneratorCommand
         if ($module) {
             $directory = config('app-modules.modules_directory', 'app-modules');
 
-            return base_path("{$directory}/{$module}/src/Actions/{$this->getClassName()}.php");
+            return base_path("{$directory}/{$module}/src/Repositories/Contracts/{$this->getClassName()}.php");
         }
 
-        return App::path('Actions/'.$this->getClassName()).'.php';
+        return App::path('Repositories/Contracts/'.$this->getClassName()).'.php';
     }
 
     public function getStubPath(): string
     {
-        return __DIR__.'/../../../stubs/repository-action.stub';
+        return __DIR__.'/../../../stubs/repository-interface.stub';
     }
 
     public function getStubVariables(): array
@@ -140,7 +140,7 @@ class MakeRepositoryAction extends GeneratorCommand
 
         if ($module) {
             $namespace = config('app-modules.modules_namespace', 'Modules');
-            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Actions';
+            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Repositories\\Contracts';
 
             return [
                 'NAMESPACE' => $moduleNamespace,
@@ -149,7 +149,7 @@ class MakeRepositoryAction extends GeneratorCommand
         }
 
         return [
-            'NAMESPACE' => 'App\\Actions',
+            'NAMESPACE' => 'App\\Repositories\\Contracts',
             'CLASS_NAME' => $this->getClassName(),
         ];
     }

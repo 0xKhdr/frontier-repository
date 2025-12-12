@@ -1,39 +1,34 @@
 <p align="center">
   <h1 align="center">Frontier Repository</h1>
   <p align="center">
-    <strong>Repository Pattern implementation for Laravel applications</strong>
+    <strong>Repository Pattern with Transparent Caching for Laravel</strong>
   </p>
 </p>
 
 <p align="center">
   <a href="#installation">Installation</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#usage">Usage</a> •
+  <a href="#caching">Caching</a> •
   <a href="#api-reference">API Reference</a> •
-  <a href="#artisan-commands">Commands</a>
+  <a href="#commands">Commands</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/packagist/v/frontier/repository" alt="Latest Version">
-  <img src="https://img.shields.io/packagist/php-v/frontier/repository" alt="PHP Version">
-  <img src="https://img.shields.io/badge/Laravel-10.x%20|%2011.x%20|%2012.x-red" alt="Laravel Version">
-  <img src="https://img.shields.io/packagist/l/frontier/repository" alt="License">
+  <img src="https://img.shields.io/badge/PHP-8.2+-777BB4" alt="PHP Version">
+  <img src="https://img.shields.io/badge/Laravel-10|11|12-FF2D20" alt="Laravel Version">
 </p>
 
 ---
 
-## About
+## Features
 
-**Frontier Repository** provides a clean abstraction layer between your business logic and Eloquent ORM using the Repository Pattern. It's a companion package to [frontier/frontier](https://github.com/frontier/frontier) (Laravel Starter Kit) and integrates seamlessly with [frontier/action](https://github.com/frontier/action).
-
-### Features
-
-- ✅ **Separation of concerns** — Decouples business logic from data access
-- ✅ **Full CRUD operations** — Create, Read, Update, Delete with consistent API
-- ✅ **Advanced querying** — Built-in filtering, sorting, pagination, scopes, and joins
-- ✅ **Action integration** — Pre-built actions for common repository operations
-- ✅ **Testability** — Easy to mock repositories in unit tests
-- ✅ **Artisan generators** — Scaffold repositories and actions with commands
+- ✅ **Repository Pattern** — Clean abstraction for data access
+- ✅ **Decorator Caching** — Choose between simple or cached repository implementations
+- ✅ **Full CRUD** — Create, Read, Update, Delete with consistent API
+- ✅ **Advanced Queries** — Filtering, sorting, pagination, scopes
+- ✅ **Module Support** — Works with internachi/modular
+- ✅ **Override Friendly** — Caching doesn't block method overrides
 
 ---
 
@@ -43,411 +38,137 @@
 composer require frontier/repository
 ```
 
-The package auto-registers its service provider via Laravel's package discovery.
-
-### Requirements
-
-- PHP 8.2+
-- Laravel 10.x, 11.x, or 12.x
-- [frontier/action](https://github.com/frontier/action) ^1.0
-
 ---
 
 ## Quick Start
 
-### 1. Generate a Repository
+### 1. Create Interface
+It is best practice to always code against interfaces.
+
+```bash
+php artisan frontier:repository-interface UserRepository
+```
+
+### 2. Generate Repository
+Create a standard repository that implements the interface.
 
 ```bash
 php artisan frontier:repository UserRepository
 ```
 
-### 2. Add Constructor with Model
+### 3. Generate Cached Repository (Optional)
+Create a decorator repository that adds caching.
 
-```php
-<?php
-
-namespace App\Repositories;
-
-use App\Models\User;
-use Frontier\Repositories\RepositoryEloquent as FrontierRepository;
-
-class UserRepository extends FrontierRepository
-{
-    public function __construct(User $model)
-    {
-        parent::__construct($model);
-    }
-}
+```bash
+php artisan frontier:cacheable-repository CachedUserRepository
 ```
 
-### 3. Use in Controller
+### 4. Bind in ServiceProvider
+Bind your interface to either the standard repository or the cached one.
 
 ```php
-<?php
+// app/Providers/RepositoryServiceProvider.php
 
-namespace App\Http\Controllers;
+// Option A: Standard Repository (No Caching)
+$this->app->bind(UserRepositoryInterface::class, UserRepository::class);
 
-use App\Repositories\UserRepository;
+// Option B: Cached Repository (Repository + Caching Decorator)
+$this->app->bind(UserRepositoryInterface::class, function ($app) {
+    return new CachedUserRepository(
+        $app->make(UserRepository::class)
+    );
+});
+```
 
+---
+
+## Caching
+
+Caching is implemented via the Decorator Pattern. The `BaseCacheableRepository` wraps your `BaseRepository` and handles caching logic transparently.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         UserRepositoryInterface         │
+└───────────────────┬─────────────────────┘
+                    │ bind to either:
+    ┌───────────────┴───────────────┐
+    ▼                               ▼
+UserRepository              CachedUserRepository
+extends BaseRepository          extends BaseCacheableRepository
+(Direct DB Access)              (Caching Decorator)
+```
+
+### Usage
+
+Inject the interface into your controllers or actions:
+
+```php
 class UserController extends Controller
 {
     public function __construct(
-        protected UserRepository $users
+        protected UserRepositoryInterface $users
     ) {}
 
     public function index()
     {
-        return $this->users->retrievePaginate(['*'], [
-            'per_page' => 15,
-            'sort' => 'created_at',
-            'direction' => 'desc',
-        ]);
-    }
-
-    public function show(int $id)
-    {
-        return $this->users->findOrFail(['id' => $id]);
-    }
-
-    public function store(Request $request)
-    {
-        return $this->users->create($request->validated());
-    }
-
-    public function update(Request $request, int $id)
-    {
-        return $this->users->update(
-            ['id' => $id],
-            $request->validated()
-        );
-    }
-
-    public function destroy(int $id)
-    {
-        return $this->users->delete(['id' => $id]);
+        // Automatically cached if CachedUserRepository is bound
+        return $this->users->retrieve();
     }
 }
 ```
 
----
+### Cache Control Methods
 
-## Usage
-
-### Basic CRUD Operations
+The `BaseCacheableRepository` exposes helper methods to control cache behavior:
 
 ```php
-// CREATE - Returns the created Model
-$user = $this->users->create([
-    'name' => 'John Doe',
-    'email' => 'john@example.com',
-]);
+// Skip cache for this query
+$users->withoutCache()->retrieve();
 
-// READ - Find single record (returns null if not found)
-$user = $this->users->find(['id' => 1]);
+// Force refresh cache
+$users->refreshCache()->retrieve();
 
-// READ - Find or throw ModelNotFoundException
-$user = $this->users->findOrFail(['email' => 'john@example.com']);
-
-// READ - Get all records
-$users = $this->users->retrieve();
-
-// READ - Paginated results
-$users = $this->users->retrievePaginate(['*'], ['per_page' => 15]);
-
-// UPDATE - Returns number of affected rows
-$count = $this->users->update(
-    ['id' => 1],
-    ['name' => 'Jane Doe']
-);
-
-// UPDATE OR CREATE
-$user = $this->users->updateOrCreate(
-    ['email' => 'john@example.com'],
-    ['name' => 'John Updated']
-);
-
-// DELETE - Returns number of deleted rows
-$count = $this->users->delete(['id' => 1]);
-```
-
-### Advanced Querying
-
-The `retrieve()` and `retrievePaginate()` methods accept an options array:
-
-```php
-$users = $this->users->retrieve(['id', 'name', 'email'], [
-    // Filter records
-    'filters' => [
-        'status' => 'active',
-        'role' => 'admin',
-    ],
-    
-    // Apply model scopes
-    'scopes' => [
-        'verified',              // Calls $model->verified()
-        'olderThan' => [18],     // Calls $model->olderThan(18)
-    ],
-    
-    // Custom joins
-    'joins' => [
-        'withProfiles',          // Calls $model->withProfiles()
-    ],
-    
-    // Eager load relationships
-    'with' => ['profile', 'roles'],
-    
-    // Sorting (single or multiple)
-    'sort' => 'created_at',
-    'direction' => 'desc',
-    
-    // Or multiple columns
-    'sort' => ['created_at', 'name'],
-    'direction' => ['desc', 'asc'],
-    
-    // Grouping
-    'group_by' => ['department_id'],
-    
-    // Distinct results
-    'distinct' => true,
-    
-    // Offset/limit
-    'offset' => 10,
-    'per_page' => 25,
-]);
-```
-
-### Bulk Operations
-
-```php
-// Insert multiple records
-$this->users->insert([
-    ['name' => 'User 1', 'email' => 'user1@example.com'],
-    ['name' => 'User 2', 'email' => 'user2@example.com'],
-]);
-
-// Insert and get ID
-$id = $this->users->insertGetId([
-    'name' => 'New User',
-    'email' => 'new@example.com',
-]);
-
-// Upsert (insert or update)
-$this->users->upsert(
-    values: [
-        ['email' => 'john@example.com', 'name' => 'John Updated'],
-        ['email' => 'jane@example.com', 'name' => 'Jane New'],
-    ],
-    uniqueBy: ['email'],
-    update: ['name']
-);
-
-// Process in chunks (memory efficient)
-$this->users->chunk(100, function ($users) {
-    foreach ($users as $user) {
-        // Process each user
-    }
-});
-```
-
-### Transactions
-
-```php
-$result = $this->users->transaction(function () use ($userData, $profileData) {
-    $user = $this->users->create($userData);
-    $this->profiles->create([...$profileData, 'user_id' => $user->id]);
-    
-    return $user;
-});
-```
-
-### Utility Methods
-
-```php
-// Count records
-$count = $this->users->count(['status' => 'active']);
-
-// Check existence
-$exists = $this->users->exists(['email' => 'john@example.com']);
-
-// First or create
-$user = $this->users->firstOrCreate(
-    ['email' => 'john@example.com'],
-    ['name' => 'John Doe']
-);
-
-// Get underlying model
-$model = $this->users->getModel();
-
-// Get table name
-$table = $this->users->getTable();
-
-// Get query builder
-$builder = $this->users->getBuilder();
+// Clear all cache
+$users->clearCache();
 ```
 
 ---
 
-## Interface Binding
+## Caching Behavior
 
-For better testability, bind your repositories to interfaces:
-
-```php
-// app/Repositories/Contracts/UserRepositoryInterface.php
-<?php
-
-namespace App\Repositories\Contracts;
-
-use Frontier\Repositories\Contracts\RepositoryEloquent;
-
-interface UserRepositoryInterface extends RepositoryEloquent
-{
-    public function findActiveUsers(): Collection;
-}
-```
-
-```php
-// app/Providers/RepositoryServiceProvider.php
-<?php
-
-namespace App\Providers;
-
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Repositories\UserRepository;
-use Illuminate\Support\ServiceProvider;
-
-class RepositoryServiceProvider extends ServiceProvider
-{
-    public function register(): void
-    {
-        $this->app->bind(
-            UserRepositoryInterface::class,
-            UserRepository::class
-        );
-    }
-}
-```
+| Method | Behavior |
+|--------|----------|
+| `retrieve()` | Cached (Read) |
+| `retrievePaginate()` | Cached (Read) |
+| `find()` | Cached (Read) |
+| `findOrFail()` | Cached (Read) |
+| `count()` | Cached (Read) |
+| `exists()` | Cached (Read) |
+| `create()` | Invalidates Cache |
+| `update()` | Invalidates Cache |
+| `delete()` | Invalidates Cache |
+| `updateOrCreate()` | Invalidates Cache |
+| `insert()` | Invalidates Cache |
+| `upsert()` | Invalidates Cache |
 
 ---
 
-## Repository Actions
+## Configuration
 
-### Create Custom Actions
-
+Publish config:
 ```bash
-php artisan frontier:repository-action CreateUser
+php artisan vendor:publish --tag=repository-config
 ```
 
 ```php
-<?php
-
-namespace App\Actions;
-
-use App\Repositories\UserRepository;
-use Frontier\Repositories\RepositoryAction as FrontierAction;
-use Illuminate\Database\Eloquent\Model;
-
-class CreateUser extends FrontierAction
-{
-    public function __construct(UserRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function handle(array $data): Model
-    {
-        $data['password'] = bcrypt($data['password']);
-        
-        return $this->repository->create($data);
-    }
-}
-```
-
-### Use in Controller
-
-```php
-public function store(Request $request, CreateUser $action): User
-{
-    return $action->handle($request->validated());
-}
-```
-
-### Built-in Actions
-
-| Action | Description |
-|--------|-------------|
-| `CreateAction` | Create a new record |
-| `RetrieveAction` | Retrieve records (with optional pagination) |
-| `FindAction` | Find single record |
-| `FindOrFailAction` | Find or throw exception |
-| `UpdateAction` | Update matching records |
-| `UpdateOrCreateAction` | Update or create record |
-| `DeleteAction` | Delete matching records |
-| `CountAction` | Count matching records |
-| `ExistsAction` | Check if records exist |
-
----
-
-## Customization
-
-### Custom Base Repository
-
-```php
-<?php
-
-namespace App\Repositories;
-
-use Frontier\Repositories\RepositoryEloquent;
-use Illuminate\Database\Eloquent\Model;
-
-abstract class BaseRepository extends RepositoryEloquent
-{
-    // Add tenant scoping
-    public function create(array $values): Model
-    {
-        $values['tenant_id'] = tenant()->id;
-        
-        return parent::create($values);
-    }
-
-    // Add audit trail
-    public function update(array $conditions, array $values): int
-    {
-        $values['updated_by'] = auth()->id();
-        
-        return parent::update($conditions, $values);
-    }
-
-    // Add soft delete support
-    public function restore(array $conditions): bool
-    {
-        return $this->where($conditions)
-            ->getBuilder()
-            ->restore();
-    }
-}
-```
-
-### Custom Query Methods
-
-```php
-class UserRepository extends RepositoryEloquent
-{
-    public function findActiveAdmins(): Collection
-    {
-        return $this->retrieve(['*'], [
-            'filters' => ['is_active' => true],
-            'scopes' => ['admin'],
-            'sort' => 'name',
-        ]);
-    }
-
-    public function searchByName(string $name): Collection
-    {
-        return $this->getBuilder()
-            ->where('name', 'LIKE', "%{$name}%")
-            ->get();
-    }
-}
+// config/repository-cache.php
+return [
+    'enabled' => env('REPOSITORY_CACHE_ENABLED', true),
+    'driver' => env('REPOSITORY_CACHE_DRIVER', null),
+    'ttl' => env('REPOSITORY_CACHE_TTL', 3600),
+];
 ```
 
 ---
@@ -456,50 +177,97 @@ class UserRepository extends RepositoryEloquent
 
 | Command | Description |
 |---------|-------------|
-| `php artisan frontier:repository {name}` | Create a new repository class |
-| `php artisan frontier:repository-action {name}` | Create a repository action class |
+| `frontier:repository {name}` | Create standard repository |
+| `frontier:cacheable-repository {name}` | Create cached repository decorator |
+| `frontier:repository-interface {name}` | Create repository interface |
+| `frontier:repository-action {name}` | Create repository action |
 
-### Examples
+All commands support the `--module` flag for modular applications.
 
-```bash
-# Create repository
-php artisan frontier:repository UserRepository
-# → Creates: app/Repositories/UserRepository.php
+---
 
-# Create repository action
-php artisan frontier:repository-action RegisterUser
-# → Creates: app/Actions/RegisterUser.php
+## CRUD Operations
+
+```php
+// CREATE
+$user = $this->users->create(['name' => 'John']);
+
+// READ
+$user = $this->users->find(['id' => 1]);
+$users = $this->users->retrieve();
+$users = $this->users->retrievePaginate(['*'], ['per_page' => 15]);
+
+// UPDATE
+$count = $this->users->update(['id' => 1], ['name' => 'Jane']);
+
+// DELETE
+$count = $this->users->delete(['id' => 1]);
 ```
 
 ---
 
-## API Reference
+## Advanced Queries
 
-### RepositoryEloquent Methods
+The `retrieve()` and `retrievePaginate()` methods accept an `$options` array to build complex queries without writing boilerplate.
 
-| Method | Return Type | Description |
-|--------|-------------|-------------|
-| `create(array $values)` | `Model` | Create new record |
-| `update(array $conditions, array $values)` | `int` | Update matching records |
-| `delete(array $conditions)` | `int` | Delete matching records |
-| `insert(array $values)` | `bool` | Bulk insert records |
-| `insertGetId(array $values)` | `int` | Insert and get ID |
-| `upsert(array $values, array $uniqueBy, ?array $update)` | `int` | Insert or update |
-| `retrieve(array $columns, array $options)` | `Collection` | Get all matching records |
-| `retrievePaginate(array $columns, array $options, ...)` | `LengthAwarePaginator` | Paginated results |
-| `find(array $conditions, array $columns)` | `?Model` | Find first match |
-| `findOrFail(array $conditions, array $columns)` | `Model` | Find or throw |
-| `updateOrCreate(array $conditions, array $values)` | `Model` | Update or create |
-| `firstOrCreate(array $conditions, array $values)` | `Model` | Get or create |
-| `count(array $conditions)` | `int` | Count matches |
-| `exists(array $conditions)` | `bool` | Check existence |
-| `chunk(int $count, callable $callback)` | `bool` | Process in batches |
-| `transaction(callable $callback)` | `mixed` | Database transaction |
-| `getModel()` | `Model` | Get underlying model |
-| `getTable()` | `string` | Get table name |
-| `getBuilder()` | `Builder` | Get query builder |
-| `resetBuilder()` | `static` | Reset query builder |
-| `withBuilder(Builder $builder)` | `static` | Set custom builder |
+```php
+$users = $this->users->retrieve(['id', 'name', 'email'], [
+    // Filtering (requires EloquentFilter on Model)
+    'filters' => ['status' => 'active', 'role' => 'admin'],
+    
+    // Scopes
+    'scopes' => ['verified', 'olderThan' => [18]],
+    
+    // Relationships
+    'with' => ['profile', 'posts'],
+    'with_count' => ['posts'],
+    
+    // Sorting
+    'sort' => 'created_at',
+    'direction' => 'desc',
+    
+    // Pagination (for retrievePaginate)
+    'per_page' => 25,
+    
+    // Limits & Offsets
+    'limit' => 10,
+    'offset' => 5,
+    
+    // Grouping
+    'group_by' => ['status'],
+    'distinct' => true,
+]);
+```
+
+### Supported Options
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `filters` | Apply Eloquent filters | `['status' => 'active']` |
+| `scopes` | Apply local scopes | `['active', 'type' => ['admin']]` |
+| `with` | Eager load relations | `['profile']` |
+| `with_count` | Count relations | `['comments']` |
+| `sort` | Order by column | `'created_at'` |
+| `direction` | Order direction | `'desc'` |
+| `per_page` | Items per page | `15` |
+| `limit` | Limit results | `10` |
+| `offset` | Offset results | `5` |
+| `distinct` | Distinct selection | `true` |
+| `joins` | Join tables | `['posts' => ['users.id', '=', 'posts.user_id']]` |
+
+> [!NOTE]
+> To use `filters`, your Eloquent Model must use the `Filterable` trait (typically from `tucker-eric/eloquentfilter`).
+
+
+---
+
+## Development
+
+```bash
+composer test          # Run tests
+composer lint          # Fix code style
+composer rector        # Apply refactorings
+```
 
 ---
 
@@ -507,11 +275,18 @@ php artisan frontier:repository-action RegisterUser
 
 | Package | Description |
 |---------|-------------|
-| [frontier/frontier](https://github.com/frontier/frontier) | Laravel Starter Kit |
-| [frontier/action](https://github.com/frontier/action) | Action Pattern for Laravel |
+| [frontier/frontier](https://github.com/0xKhdr/frontier) | Laravel Starter Kit |
+| [frontier/action](https://github.com/0xKhdr/frontier-action) | Action Pattern |
+| [frontier/module](https://github.com/0xKhdr/frontier-module) | Modular Architecture |
 
 ---
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/0xKhdr">Mohamed Khedr</a>
+</p>

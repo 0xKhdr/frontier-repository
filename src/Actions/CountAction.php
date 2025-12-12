@@ -2,9 +2,9 @@
 
 namespace Frontier\Repositories\Actions;
 
-use Frontier\Repositories\RepositoryAction;
+use Frontier\Repositories\BaseAction;
 
-class CountAction extends RepositoryAction
+class CountAction extends BaseAction
 {
     public function handle(array $conditions): int
     {

@@ -11,13 +11,13 @@ use InterNACHI\Modular\Support\Facades\Modules;
 use function Laravel\Prompts\select;
 
 /**
- * Artisan command to generate a new repository action class.
+ * Artisan command to generate a new cacheable repository class.
  */
-class MakeRepositoryAction extends GeneratorCommand
+class MakeCacheableRepository extends GeneratorCommand
 {
-    protected $signature = 'frontier:repository-action {name} {--module= : The module to create the action in}';
+    protected $signature = 'frontier:cacheable-repository {name} {--module= : The module to create the repository in}';
 
-    protected $description = 'Create a new repository action class';
+    protected $description = 'Create a new cacheable repository class';
 
     protected ?string $selectedModule = null;
 
@@ -35,19 +35,17 @@ class MakeRepositoryAction extends GeneratorCommand
     {
         $module = $this->option('module');
 
-        // Check if --module was used but internachi/modular is not installed
         if (($module !== null || $this->moduleOptionWasPassedWithoutValue()) && ! $this->isModularInstalled()) {
-            $this->components->error('The --module option requires the internachi/modular package. Install it with: composer require internachi/modular');
+            $this->components->error('The --module option requires the internachi/modular package.');
 
             return;
         }
 
-        // --module passed without value = show interactive selection
         if ($module === null && $this->moduleOptionWasPassedWithoutValue()) {
             $modules = $this->getAvailableModules();
 
             if ($modules === []) {
-                $this->components->warn('No modules found in '.config('app-modules.modules_directory', 'app-modules'));
+                $this->components->warn('No modules found.');
 
                 return;
             }
@@ -62,17 +60,11 @@ class MakeRepositoryAction extends GeneratorCommand
         }
     }
 
-    /**
-     * Check if internachi/modular package is installed.
-     */
     protected function isModularInstalled(): bool
     {
         return class_exists(\InterNACHI\Modular\Support\ModuleRegistry::class);
     }
 
-    /**
-     * Check if --module was passed without a value.
-     */
     protected function moduleOptionWasPassedWithoutValue(): bool
     {
         foreach ($_SERVER['argv'] ?? [] as $arg) {
@@ -84,9 +76,6 @@ class MakeRepositoryAction extends GeneratorCommand
         return false;
     }
 
-    /**
-     * Get available modules using internachi/modular's Modules facade.
-     */
     protected function getAvailableModules(): array
     {
         try {
@@ -96,7 +85,6 @@ class MakeRepositoryAction extends GeneratorCommand
                 ->values()
                 ->toArray();
         } catch (\Throwable) {
-            // Fallback: scan directory
             $directory = base_path(config('app-modules.modules_directory', 'app-modules'));
 
             if (! is_dir($directory)) {
@@ -123,34 +111,38 @@ class MakeRepositoryAction extends GeneratorCommand
         if ($module) {
             $directory = config('app-modules.modules_directory', 'app-modules');
 
-            return base_path("{$directory}/{$module}/src/Actions/{$this->getClassName()}.php");
+            return base_path("{$directory}/{$module}/src/Repositories/{$this->getClassName()}.php");
         }
 
-        return App::path('Actions/'.$this->getClassName()).'.php';
+        return App::path('Repositories/'.$this->getClassName()).'.php';
     }
 
     public function getStubPath(): string
     {
-        return __DIR__.'/../../../stubs/repository-action.stub';
+        return __DIR__.'/../../../stubs/cacheable-repository.stub';
     }
 
     public function getStubVariables(): array
     {
         $module = $this->getModule();
+        $className = $this->getClassName();
+        $repositoryName = str_replace('Cached', '', $className);
 
         if ($module) {
             $namespace = config('app-modules.modules_namespace', 'Modules');
-            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Actions';
+            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Repositories';
 
             return [
                 'NAMESPACE' => $moduleNamespace,
-                'CLASS_NAME' => $this->getClassName(),
+                'CLASS_NAME' => $className,
+                'REPOSITORY_NAME' => $repositoryName,
             ];
         }
 
         return [
-            'NAMESPACE' => 'App\\Actions',
-            'CLASS_NAME' => $this->getClassName(),
+            'NAMESPACE' => 'App\\Repositories',
+            'CLASS_NAME' => $className,
+            'REPOSITORY_NAME' => $repositoryName,
         ];
     }
 }

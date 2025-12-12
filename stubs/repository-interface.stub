@@ -1,0 +1,12 @@
+<?php
+
+declare(strict_types=1);
+
+namespace $NAMESPACE$;
+
+use Frontier\Repositories\Contracts\RepositoryEloquent;
+
+interface $CLASS_NAME$ extends RepositoryEloquent
+{
+    //
+}

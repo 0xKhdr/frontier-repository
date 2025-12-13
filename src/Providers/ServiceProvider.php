@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Frontier\Repositories\Providers;
 
-use Frontier\Repositories\Console\Commands\MakeCacheableRepository;
+use Frontier\Repositories\Console\Commands\MakeRepositoryCache;
 use Frontier\Repositories\Console\Commands\MakeRepository;
 use Frontier\Repositories\Console\Commands\MakeRepositoryAction;
 use Frontier\Repositories\Console\Commands\MakeRepositoryInterface;
@@ -18,7 +18,7 @@ class ServiceProvider extends IlluminateServiceProvider
     /** @var array<int, class-string> */
     protected array $commands = [
         MakeRepository::class,
-        MakeCacheableRepository::class,
+        MakeRepositoryCache::class,
         MakeRepositoryAction::class,
         MakeRepositoryInterface::class,
     ];

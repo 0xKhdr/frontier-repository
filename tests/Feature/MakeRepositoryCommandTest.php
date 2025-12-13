@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Frontier\Repositories\Tests\TestCase;
 use Illuminate\Contracts\Console\Kernel;
 
-uses(TestCase::class);
+
 
 describe('MakeRepository Command', function (): void {
     it('is registered', function (): void {
@@ -14,10 +14,10 @@ describe('MakeRepository Command', function (): void {
     });
 });
 
-describe('MakeCacheableRepository Command', function (): void {
+describe('MakeRepositoryCache Command', function (): void {
     it('is registered', function (): void {
         $commands = $this->app[Kernel::class]->all();
-        expect($commands)->toHaveKey('frontier:cacheable-repository');
+        expect($commands)->toHaveKey('frontier:repository-cache');
     });
 });
 

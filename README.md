@@ -60,7 +60,7 @@ php artisan frontier:repository UserRepository
 Create a decorator repository that adds caching.
 
 ```bash
-php artisan frontier:cacheable-repository CachedUserRepository
+php artisan frontier:repository-cache CachedUserRepository
 ```
 
 ### 4. Bind in ServiceProvider
@@ -84,7 +84,7 @@ $this->app->bind(UserRepositoryInterface::class, function ($app) {
 
 ## Caching
 
-Caching is implemented via the Decorator Pattern. The `BaseCacheableRepository` wraps your `BaseRepository` and handles caching logic transparently.
+Caching is implemented via the Decorator Pattern. The `RepositoryCache` wraps your `BaseRepository` and handles caching logic transparently.
 
 ### Architecture
 
@@ -96,7 +96,7 @@ Caching is implemented via the Decorator Pattern. The `BaseCacheableRepository` 
     ┌───────────────┴───────────────┐
     ▼                               ▼
 UserRepository              CachedUserRepository
-extends BaseRepository          extends BaseCacheableRepository
+extends BaseRepository          extends RepositoryCache
 (Direct DB Access)              (Caching Decorator)
 ```
 
@@ -121,7 +121,7 @@ class UserController extends Controller
 
 ### Cache Control Methods
 
-The `BaseCacheableRepository` exposes helper methods to control cache behavior:
+The `RepositoryCache` exposes helper methods to control cache behavior:
 
 ```php
 // Skip cache for this query
@@ -178,7 +178,7 @@ return [
 | Command | Description |
 |---------|-------------|
 | `frontier:repository {name}` | Create standard repository |
-| `frontier:cacheable-repository {name}` | Create cached repository decorator |
+| `frontier:repository-cache {name}` | Create cached repository decorator |
 | `frontier:repository-interface {name}` | Create repository interface |
 | `frontier:repository-action {name}` | Create repository action |
 

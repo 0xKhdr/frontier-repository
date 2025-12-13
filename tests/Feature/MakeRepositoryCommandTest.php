@@ -2,10 +2,7 @@
 
 declare(strict_types=1);
 
-use Frontier\Repositories\Tests\TestCase;
 use Illuminate\Contracts\Console\Kernel;
-
-
 
 describe('MakeRepository Command', function (): void {
     it('is registered', function (): void {

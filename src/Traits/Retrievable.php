@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Frontier\Repositories\Traits;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -15,6 +16,30 @@ use InvalidArgumentException;
 trait Retrievable
 {
     /**
+     * Build base query with all options except offset/limit.
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    private function buildBaseQuery(array $columns = ['*'], array $options = []): static
+    {
+        $this->resetBuilder();
+
+        return $this->select(columns: $columns)
+            ->filters(Arr::get($options, 'filters'))
+            ->scopes(Arr::get($options, 'scopes'))
+            ->joins(Arr::get($options, 'joins'))
+            ->groupBy(Arr::get($options, 'group_by'))
+            ->distinct(Arr::get($options, 'distinct', false))
+            ->sort(
+                sort: Arr::get($options, 'sort', config('app.order_by.column')),
+                direction: Arr::get($options, 'direction', config('app.order_by.direction'))
+            )
+            ->with(Arr::get($options, 'with'))
+            ->withCount(Arr::get($options, 'with_count'));
+    }
+
+    /**
      * Build the retrieve query with all options applied.
      *
      * @param  array<int, string>  $columns  Columns to select
@@ -22,39 +47,23 @@ trait Retrievable
      */
     protected function getRetrieveQuery(array $columns = ['*'], array $options = []): Builder
     {
-        $this->resetBuilder();
-
-        return $this->select(columns: $columns)
-            ->filters(
-                filters: Arr::get($options, 'filters')
-            )
-            ->scopes(
-                scopes: Arr::get($options, 'scopes')
-            )
-            ->joins(
-                joins: Arr::get($options, 'joins')
-            )
-            ->groupBy(
-                groups: Arr::get($options, 'group_by')
-            )
-            ->distinct(
-                distinct: Arr::get($options, 'distinct', false)
-            )
-            ->sort(
-                sort: Arr::get($options, 'sort', config('app.order_by.column')),
-                direction: Arr::get($options, 'direction', config('app.order_by.direction'))
-            )
+        return $this->buildBaseQuery($columns, $options)
             ->offset(
-                limit: Arr::get($options, 'per_page', -1),
+                limit: Arr::get($options, 'limit', -1),
                 offset: Arr::get($options, 'offset')
             )
-            ->with(
-                relations: Arr::get($options, 'with')
-            )
-            ->withCount(
-                relations: Arr::get($options, 'with_count')
-            )
             ->getBuilder();
+    }
+
+    /**
+     * Build query for pagination methods (NO offset/limit - paginator handles it).
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    protected function getRetrieveQueryForPagination(array $columns = ['*'], array $options = []): Builder
+    {
+        return $this->buildBaseQuery($columns, $options)->getBuilder();
     }
 
     /**

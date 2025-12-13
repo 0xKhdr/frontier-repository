@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Frontier\Repositories;
 
-use Frontier\Repositories\Contracts\RepositoryCache as RepositoryCacheContract;
 use Frontier\Repositories\Contracts\Repository as RepositoryContract;
+use Frontier\Repositories\Contracts\RepositoryCache as RepositoryCacheContract;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -121,7 +123,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Retrieve paginated records (cached).
+     * Retrieve paginated records with total count (cached).
      *
      * @param  array<int, string>  $columns
      * @param  array<string, mixed>  $options
@@ -133,6 +135,36 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $page = null
     ): LengthAwarePaginator {
         return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
+    }
+
+    /**
+     * Simple paginate without total count (cached).
+     *
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     */
+    public function retrieveSimplePaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): Paginator {
+        return $this->cached('retrieveSimplePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\Paginator => $this->repository->retrieveSimplePaginate($columns, $options, $perPage, $page));
+    }
+
+    /**
+     * Cursor-based pagination for large datasets (cached).
+     *
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     */
+    public function retrieveCursorPaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?string $cursor = null
+    ): CursorPaginator {
+        return $this->cached('retrieveCursorPaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'cursor' => $cursor], fn (): \Illuminate\Contracts\Pagination\CursorPaginator => $this->repository->retrieveCursorPaginate($columns, $options, $perPage, $cursor));
     }
 
     /**

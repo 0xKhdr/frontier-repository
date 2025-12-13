@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Frontier\Repositories\Contracts;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
@@ -72,7 +74,8 @@ interface Repository
     public function retrieve(array $columns = ['*'], array $options = []): Collection;
 
     /**
-     * Retrieve paginated results.
+     * Retrieve paginated results with total count.
+     * Uses 2 queries: COUNT(*) + data fetch.
      *
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
@@ -83,6 +86,34 @@ interface Repository
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator;
+
+    /**
+     * Simple paginate without total count (for "Next/Prev" UI).
+     * Uses 1 query only - faster than retrievePaginate().
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveSimplePaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): Paginator;
+
+    /**
+     * Cursor-based pagination for large datasets.
+     * O(1) performance - no offset scanning.
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveCursorPaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?string $cursor = null
+    ): CursorPaginator;
 
     /**
      * Find a single record.

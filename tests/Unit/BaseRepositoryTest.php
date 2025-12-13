@@ -12,7 +12,7 @@ describe('BaseRepository', function (): void {
         $model = Mockery::mock(Model::class);
         $builder = Mockery::mock(Builder::class);
         $model->shouldReceive('newQuery')->andReturn($builder);
-        
+
         $repository = new class($model) extends BaseRepository {};
 
         expect($repository)->toBeInstanceOf(Repository::class);

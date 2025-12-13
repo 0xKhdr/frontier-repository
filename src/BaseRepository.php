@@ -7,9 +7,10 @@ namespace Frontier\Repositories;
 use Frontier\Repositories\Contracts\Repository as RepositoryContract;
 use Frontier\Repositories\Traits\Retrievable;
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Throwable;
 
@@ -55,22 +56,63 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * Retrieve paginated records.
+     * Paginate with total count (for UI with page numbers).
+     * Uses 2 queries: COUNT(*) + data fetch.
      *
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options including 'per_page'
+     * @param  array<string, mixed>  $options  Query options
      */
     public function retrievePaginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
         ?int $page = null
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         $perPage ??= $this->getModel()->getPerPage();
 
-        return $this->getRetrieveQuery($columns, $options)
-            ->paginate(perPage: $perPage, columns: $columns, page: $page);
+        return $this->getRetrieveQueryForPagination($columns, $options)
+            ->paginate(perPage: $perPage, page: $page);
+    }
+
+    /**
+     * Simple paginate without total count (for "Next/Prev" UI).
+     * Uses 1 query only - faster than retrievePaginate().
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveSimplePaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): Paginator {
+        $perPage ??= $this->getModel()->getPerPage();
+
+        return $this->getRetrieveQueryForPagination($columns, $options)
+            ->simplePaginate(perPage: $perPage, page: $page);
+    }
+
+    /**
+     * Cursor-based pagination for large datasets (100k+ rows).
+     * O(1) performance - no offset scanning, constant speed for any "page".
+     * Best for: infinite scroll, API endpoints, mobile apps.
+     *
+     * NOTE: Requires consistent ORDER BY column (usually 'id' or 'created_at').
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveCursorPaginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?string $cursor = null
+    ): CursorPaginator {
+        $perPage ??= $this->getModel()->getPerPage();
+
+        return $this->getRetrieveQueryForPagination($columns, $options)
+            ->cursorPaginate(perPage: $perPage, cursor: $cursor);
     }
 
     /**

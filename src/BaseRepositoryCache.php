@@ -132,7 +132,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'pageName' => $pageName, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
+        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
     }
 
     /**

@@ -282,6 +282,14 @@ composer rector        # Apply refactorings
 
 ---
 
+
+
+## Contributors
+
+- [Mohamed Khedr](mailto:0xkhdr@gmail.com)
+
+---
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.

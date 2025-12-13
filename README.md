@@ -28,7 +28,6 @@
 - ✅ **Full CRUD** — Create, Read, Update, Delete with consistent API
 - ✅ **Advanced Queries** — Filtering, sorting, pagination, scopes
 - ✅ **Module Support** — Works with internachi/modular
-- ✅ **Override Friendly** — Caching doesn't block method overrides
 
 ---
 
@@ -53,14 +52,14 @@ php artisan frontier:repository-interface UserRepository
 Create a standard repository that implements the interface.
 
 ```bash
-php artisan frontier:repository UserRepository
+php artisan frontier:repository UserRepositoryEloquent
 ```
 
-### 3. Generate Cached Repository (Optional)
+### 3. Generate Repository Cache (Optional)
 Create a decorator repository that adds caching.
 
 ```bash
-php artisan frontier:repository-cache CachedUserRepository
+php artisan frontier:repository-cache UserRepositoryCache
 ```
 
 ### 4. Bind in ServiceProvider
@@ -70,12 +69,14 @@ Bind your interface to either the standard repository or the cached one.
 // app/Providers/RepositoryServiceProvider.php
 
 // Option A: Standard Repository (No Caching)
-$this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+$this->app->bind(UserRepository::class, function ($app) {
+    return new UserRepositoryEloquent(new User());
+});
 
 // Option B: Cached Repository (Repository + Caching Decorator)
-$this->app->bind(UserRepositoryInterface::class, function ($app) {
-    return new CachedUserRepository(
-        $app->make(UserRepository::class)
+$this->app->bind(UserRepository::class, function ($app) {
+    return new UserRepositoryCache(
+        new UserRepositoryEloquent(new User())
     );
 });
 ```
@@ -90,14 +91,14 @@ Caching is implemented via the Decorator Pattern. The `RepositoryCache` wraps yo
 
 ```
 ┌─────────────────────────────────────────┐
-│         UserRepositoryInterface         │
+│         UserRepository         │
 └───────────────────┬─────────────────────┘
                     │ bind to either:
     ┌───────────────┴───────────────┐
     ▼                               ▼
-UserRepository              CachedUserRepository
-extends BaseRepository          extends RepositoryCache
-(Direct DB Access)              (Caching Decorator)
+UserRepositoryEloquent              UserRepositoryCache
+extends BaseRepository              extends RepositoryCache
+(Direct DB Access)                  (Caching Decorator)
 ```
 
 ### Usage
@@ -108,12 +109,12 @@ Inject the interface into your controllers or actions:
 class UserController extends Controller
 {
     public function __construct(
-        protected UserRepositoryInterface $users
+        protected UserRepository $users
     ) {}
 
     public function index()
     {
-        // Automatically cached if CachedUserRepository is bound
+        // Automatically cached if UserRepositoryCache is bound
         return $this->users->retrieve();
     }
 }
@@ -288,5 +289,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/0xKhdr">Mohamed Khedr</a>
+  Made with ❤️ for Laravel community
 </p>

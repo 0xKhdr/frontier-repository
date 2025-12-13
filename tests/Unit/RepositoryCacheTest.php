@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Frontier\Repositories\RepositoryCache;
+use Frontier\Repositories\BaseRepositoryCache;
 use Frontier\Repositories\Contracts\Repository;
 use Frontier\Repositories\Tests\TestCase;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
@@ -38,7 +38,7 @@ describe('RepositoryCache', function (): void {
             ->andReturnUsing(fn($key, $ttl, $callback) => $callback());
 
         // Test
-        $decorator = new RepositoryCache($innerRepo);
+        $decorator = new BaseRepositoryCache($innerRepo);
         $result = $decorator->retrieve();
 
         expect($result)->toBeInstanceOf(Collection::class);
@@ -62,7 +62,7 @@ describe('RepositoryCache', function (): void {
         // Setup Cache Store Mock
         $cacheStore->shouldReceive('supportsTags')->andReturn(false);
         
-        $decorator = new RepositoryCache($innerRepo);
+        $decorator = new BaseRepositoryCache($innerRepo);
         $decorator->create([]);
     });
 });

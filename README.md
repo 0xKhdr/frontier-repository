@@ -84,7 +84,7 @@ $this->app->bind(UserRepository::class, function ($app) {
 
 ## Caching
 
-Caching is implemented via the Decorator Pattern. The `RepositoryCache` wraps your `BaseRepository` and handles caching logic transparently.
+Caching is implemented via the Decorator Pattern. The `BaseRepositoryCache` wraps your `BaseRepository` and handles caching logic transparently.
 
 ### Architecture
 
@@ -121,7 +121,7 @@ class UserController extends Controller
 
 ### Cache Control Methods
 
-The `RepositoryCache` exposes helper methods to control cache behavior:
+The `BaseRepositoryCache` exposes helper methods to control cache behavior:
 
 ```php
 // Skip cache for this query

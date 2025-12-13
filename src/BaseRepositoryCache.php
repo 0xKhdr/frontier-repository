@@ -24,7 +24,7 @@ use Throwable;
  *       new RepositoryCache($app->make(UserRepository::class))
  *   );
  */
-class RepositoryCache implements RepositoryCacheContract, RepositoryContract
+class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 {
     protected bool $skipCache = false;
 

@@ -80,7 +80,7 @@ interface Repository
     public function retrievePaginate(
         array $columns = ['*'],
         array $options = [],
-        string $pageName = 'page',
+        ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator;
 

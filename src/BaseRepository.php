@@ -63,13 +63,14 @@ abstract class BaseRepository implements RepositoryContract
     public function retrievePaginate(
         array $columns = ['*'],
         array $options = [],
-        string $pageName = 'page',
+        ?int $perPage = null,
         ?int $page = null
-    ): LengthAwarePaginator {
-        $perPage = intval(Arr::get($options, 'per_page', $this->getModel()->getPerPage()));
+    ): LengthAwarePaginator
+    {
+        $perPage ??= $this->getModel()->getPerPage();
 
         return $this->getRetrieveQuery($columns, $options)
-            ->paginate($perPage, $columns, $pageName, $page);
+            ->paginate(perPage: $perPage, columns: $columns, page: $page);
     }
 
     /**

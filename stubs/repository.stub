@@ -8,8 +8,4 @@ use Frontier\Repositories\BaseRepository;
 
 class $CLASS_NAME$ extends BaseRepository
 {
-    public function __construct()
-    {
-        // parent::__construct(new Model());
-    }
 }

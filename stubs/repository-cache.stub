@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace $NAMESPACE$;
 
-use App\Repositories\$REPOSITORY_NAME$;
 use Frontier\Repositories\BaseRepositoryCache;
-use Frontier\Repositories\Contracts\Repository;
 
 class $CLASS_NAME$ extends BaseRepositoryCache
 {
-    public function __construct($REPOSITORY_NAME$ $repository)
-    {
-        parent::__construct($repository);
-    }
 }

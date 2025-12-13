@@ -111,10 +111,10 @@ class MakeRepositoryCache extends GeneratorCommand
         if ($module) {
             $directory = config('app-modules.modules_directory', 'app-modules');
 
-            return base_path("{$directory}/{$module}/src/Repositories/{$this->getClassName()}.php");
+            return base_path("{$directory}/{$module}/src/Repositories/Cache/{$this->getClassName()}.php");
         }
 
-        return App::path('Repositories/'.$this->getClassName()).'.php';
+        return App::path('Repositories/Cache/'.$this->getClassName()).'.php';
     }
 
     public function getStubPath(): string
@@ -130,7 +130,7 @@ class MakeRepositoryCache extends GeneratorCommand
 
         if ($module) {
             $namespace = config('app-modules.modules_namespace', 'Modules');
-            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Repositories';
+            $moduleNamespace = $namespace.'\\'.Str::studly($module).'\\Repositories\\Cache';
 
             return [
                 'NAMESPACE' => $moduleNamespace,
@@ -140,7 +140,7 @@ class MakeRepositoryCache extends GeneratorCommand
         }
 
         return [
-            'NAMESPACE' => 'App\\Repositories',
+            'NAMESPACE' => 'App\\Repositories\\Cache',
             'CLASS_NAME' => $className,
             'REPOSITORY_NAME' => $repositoryName,
         ];

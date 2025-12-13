@@ -8,10 +8,9 @@ use Frontier\Repositories\BaseAction;
 
 class $CLASS_NAME$ extends BaseAction
 {
-    public function __construct()
-    {
-        // $this->repository = new Repository();
-    }
+    public function __construct(
+        // Inject dependencies here
+    ) {}
 
     public function handle(): mixed
     {

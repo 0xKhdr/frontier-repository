@@ -168,9 +168,4 @@ interface Repository
      * Get the query builder.
      */
     public function getBuilder(): Builder;
-
-    /**
-     * Check if the repository is cached.
-     */
-    public function isCached(): bool;
 }

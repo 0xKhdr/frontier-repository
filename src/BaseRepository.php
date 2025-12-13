@@ -275,9 +275,4 @@ abstract class BaseRepository implements RepositoryContract
     {
         return $this->builder;
     }
-
-    public function isCached(): bool
-    {
-        return false;
-    }
 }

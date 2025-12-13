@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace $NAMESPACE$;
 
-use Frontier\Repositories\Contracts\RepositoryEloquent;
+use Frontier\Repositories\Contracts\Repository;
 
-interface $CLASS_NAME$ extends RepositoryEloquent
+interface $CLASS_NAME$ extends Repository
 {
     //
 }

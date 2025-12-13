@@ -126,7 +126,6 @@ class MakeRepositoryCache extends GeneratorCommand
     {
         $module = $this->getModule();
         $className = $this->getClassName();
-        $repositoryName = str_replace('Cached', '', $className);
 
         if ($module) {
             $namespace = config('app-modules.modules_namespace', 'Modules');
@@ -135,14 +134,12 @@ class MakeRepositoryCache extends GeneratorCommand
             return [
                 'NAMESPACE' => $moduleNamespace,
                 'CLASS_NAME' => $className,
-                'REPOSITORY_NAME' => $repositoryName,
             ];
         }
 
         return [
             'NAMESPACE' => 'App\\Repositories\\Cache',
             'CLASS_NAME' => $className,
-            'REPOSITORY_NAME' => $repositoryName,
         ];
     }
 }

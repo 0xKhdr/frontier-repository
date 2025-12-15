@@ -4,7 +4,6 @@ namespace Frontier\Repositories\Actions;
 
 use Frontier\Repositories\BaseAction;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 
 class RetrievePaginateAction extends BaseAction
 {

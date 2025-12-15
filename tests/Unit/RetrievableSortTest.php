@@ -6,7 +6,7 @@ use Frontier\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-describe('Retrievable Sort', function () {
+describe('Retrievable Sort', function (): void {
     // Helper to create repository with mocks
     function createRepositoryForSort(): BaseRepository
     {
@@ -19,19 +19,19 @@ describe('Retrievable Sort', function () {
 
         return new class($model) extends BaseRepository
         {
-            public function applySort($sort, $direction): static
+            public function applySort(string|array|null $sort, string|array|null $direction): static
             {
                 return $this->sort($sort, $direction);
             }
 
-            public function applyReorder($sort = null, $direction = null): static
+            public function applyReorder(string|array|null $sort = null, string|array|null $direction = null): static
             {
                 return $this->reorder($sort, $direction);
             }
         };
     }
 
-    it('sorts by single column with default direction', function () {
+    it('sorts by single column with default direction', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -40,7 +40,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort('name', 'asc');
     });
 
-    it('sorts by multiple columns with mixed directions', function () {
+    it('sorts by multiple columns with mixed directions', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -50,7 +50,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort(['name', 'created_at'], ['asc', 'desc']);
     });
 
-    it('normalizes invalid direction to asc', function () {
+    it('normalizes invalid direction to asc', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -59,7 +59,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort('status', 'INVALID_DIRECTION');
     });
 
-    it('handles raw expressions correctly', function () {
+    it('handles raw expressions correctly', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -69,7 +69,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort('raw:length(name)', 'asc');
     });
 
-    it('handles complex raw expressions like NULLS LAST', function () {
+    it('handles complex raw expressions like NULLS LAST', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -78,7 +78,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort('raw:name IS NULL, name', 'asc');
     });
 
-    it('fixes array fallback bug', function () {
+    it('fixes array fallback bug', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -90,7 +90,7 @@ describe('Retrievable Sort', function () {
         $repo->applySort(['a', 'b'], 'desc');
     });
 
-    it('reorders and then applies new sort', function () {
+    it('reorders and then applies new sort', function (): void {
         $repo = createRepositoryForSort();
         $builder = $repo->getBuilder();
 
@@ -100,7 +100,7 @@ describe('Retrievable Sort', function () {
         $repo->applyReorder('id', 'desc');
     });
 
-    it('throws exception for dangerous raw expressions', function () {
+    it('throws exception for dangerous raw expressions', function (): void {
         $repo = createRepositoryForSort();
 
         expect(fn () => $repo->applySort('raw:drop table users', 'asc'))

@@ -293,7 +293,7 @@ trait Retrievable
     protected function prefixTable(string $column): string
     {
         // Allow raw column if explicitly safe, otherwise validate
-        if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+[a-zA-Z0-9_]+)?$/', $column)) {
+        if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+\w+)?$/', $column)) {
             throw new InvalidArgumentException("Invalid column name: {$column}");
         }
 

@@ -386,6 +386,8 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     protected function key(string $method, array $params = []): string
     {
+        $this->ksortRecursive($params);
+
         return $this->getCachePrefix().':'.$method.':'.md5(serialize($params));
     }
 
@@ -418,5 +420,19 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     {
         $this->skipCache = false;
         $this->forceRefresh = false;
+    }
+
+    /**
+     * Recursively sort an array by keys.
+     */
+    protected function ksortRecursive(array &$array): void
+    {
+        ksort($array);
+
+        foreach ($array as &$value) {
+            if (is_array($value)) {
+                $this->ksortRecursive($value);
+            }
+        }
     }
 }

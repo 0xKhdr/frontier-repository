@@ -32,8 +32,8 @@ trait Retrievable
             ->groupBy(Arr::get($options, 'group_by'))
             ->distinct(Arr::get($options, 'distinct', false))
             ->sort(
-                sort: Arr::get($options, 'sort', config('app.order_by.column')),
-                direction: Arr::get($options, 'direction', config('app.order_by.direction'))
+                sort: Arr::get($options, 'sort', config('app.order_by.column', 'id')),
+                direction: Arr::get($options, 'direction', config('app.order_by.direction', 'desc'))
             )
             ->with(Arr::get($options, 'with'))
             ->withCount(Arr::get($options, 'with_count'));
@@ -81,7 +81,7 @@ trait Retrievable
             return $this->prefixTable($column);
         }, $columns);
 
-        $this->builder->selectRaw(implode(',', $safeColumns));
+        $this->builder->select(implode(',', $safeColumns));
 
         return $this;
     }
@@ -207,24 +207,71 @@ trait Retrievable
     /**
      * Apply sorting.
      *
-     * @param  string|array<int, string>|null  $sort  Sort column(s)
-     * @param  string|array<int, string>|null  $direction  Sort direction(s)
+     * Supports:
+     * - Single column: sort('name', 'asc')
+     * - Multiple columns: sort(['name', 'created_at'], ['asc', 'desc'])
+     * - Raw expressions: sort('raw:FIELD(status, "active", "pending", "closed")', 'asc')
+     * - NULLS LAST: sort('raw:column IS NULL, column', 'asc')
+     *
+     * @param  string|array<int, string>|null  $sort  Sort column(s) or raw expressions prefixed with 'raw:'
+     * @param  string|array<int, string>|null  $direction  Sort direction(s) - only 'asc' or 'desc' allowed
      */
     protected function sort(string|array|null $sort, string|array|null $direction): static
     {
-        if ($sort) {
-            $sortArray = is_array($sort) ? $sort : [$sort];
-            $directionArray = is_array($direction) ? $direction : [$direction];
+        if ($sort === null) {
+            return $this;
+        }
 
-            foreach ($sortArray as $key => $sortColumn) {
-                $this->builder->orderBy(
-                    $this->prefixTable($sortColumn),
-                    Arr::get($directionArray, $key, $direction ?? 'asc')
-                );
+        $sortArray = (array) $sort;
+        $defaultDirection = is_string($direction) ? $direction : 'asc';
+        $directionArray = is_array($direction)
+            ? $direction
+            : array_fill(0, count($sortArray), $defaultDirection);
+
+        foreach ($sortArray as $index => $sortColumn) {
+            $dir = $this->normalizeDirection(Arr::get($directionArray, $index, $defaultDirection));
+
+            if (Str::startsWith($sortColumn, 'raw:')) {
+                $raw = Str::after($sortColumn, 'raw:');
+                $this->builder->orderByRaw($this->validateRawExpression($raw).' '.$dir);
+            } else {
+                $this->builder->orderBy($this->prefixTable($sortColumn), $dir);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * Clear all existing order by clauses and optionally apply new sorting.
+     *
+     * Useful when you need to override sorting set by previous query building.
+     *
+     * @param  string|array<int, string>|null  $sort  Optional new sort column(s)
+     * @param  string|array<int, string>|null  $direction  Optional new sort direction(s)
+     */
+    protected function reorder(string|array|null $sort = null, string|array|null $direction = null): static
+    {
+        $this->builder->reorder();
+
+        if ($sort !== null) {
+            $this->sort($sort, $direction);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Normalize and validate sort direction.
+     *
+     * Only allows 'asc' or 'desc' to prevent SQL injection.
+     * Invalid values default to 'asc' for safety.
+     */
+    private function normalizeDirection(mixed $direction): string
+    {
+        $dir = strtolower(trim((string) $direction));
+
+        return in_array($dir, ['asc', 'desc'], true) ? $dir : 'asc';
     }
 
     /**
@@ -245,6 +292,11 @@ trait Retrievable
      */
     protected function prefixTable(string $column): string
     {
+        // Allow raw column if explicitly safe, otherwise validate
+        if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+[a-zA-Z0-9_]+)?$/', $column)) {
+             throw new InvalidArgumentException("Invalid column name: {$column}");
+        }
+
         if (Str::contains($column, '.')) {
             return $column;
         }

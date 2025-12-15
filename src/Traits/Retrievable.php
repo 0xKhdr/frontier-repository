@@ -294,7 +294,7 @@ trait Retrievable
     {
         // Allow raw column if explicitly safe, otherwise validate
         if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+[a-zA-Z0-9_]+)?$/', $column)) {
-             throw new InvalidArgumentException("Invalid column name: {$column}");
+            throw new InvalidArgumentException("Invalid column name: {$column}");
         }
 
         if (Str::contains($column, '.')) {

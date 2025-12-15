@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class FindOrFailAction extends BaseAction
 {
-    public function handle(array $conditions, array $columns = ['*'], array $with = []): Model
+    public function handle(array $conditions, array $columns = ['*']): Model
     {
-        return $this->repository->findOrFail($conditions, $columns, $with);
+        return $this->repository->findOrFail($conditions, $columns);
     }
 }

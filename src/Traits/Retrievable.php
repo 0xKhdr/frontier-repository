@@ -81,7 +81,7 @@ trait Retrievable
             return $this->prefixTable($column);
         }, $columns);
 
-        $this->builder->select(implode(',', $safeColumns));
+        $this->builder->select($safeColumns);
 
         return $this;
     }

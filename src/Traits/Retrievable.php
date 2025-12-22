@@ -32,8 +32,8 @@ trait Retrievable
             ->groupBy(Arr::get($options, 'group_by'))
             ->distinct(Arr::get($options, 'distinct', false))
             ->sort(
-                sort: Arr::get($options, 'sort', config('app.order_by.column', 'id')),
-                direction: Arr::get($options, 'direction', config('app.order_by.direction', 'desc'))
+                sort: Arr::get($options, 'sort') ?? head(config('app.default_sort')),
+                direction: Arr::get($options, 'direction') ?? last(config('app.default_sort'))
             )
             ->with(Arr::get($options, 'with'))
             ->withCount(Arr::get($options, 'with_count'));

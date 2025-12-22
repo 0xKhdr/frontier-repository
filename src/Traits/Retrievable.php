@@ -31,7 +31,7 @@ trait Retrievable
             ->joins(Arr::get($options, 'joins'))
             ->groupBy(Arr::get($options, 'group_by'))
             ->distinct(Arr::get($options, 'distinct', false))
-            ->sort(
+            ->order(
                 sort: Arr::get($options, 'sort') ?? config('app.default_order.sort'),
                 direction: Arr::get($options, 'direction') ?? config('app.default_order.direction')
             )
@@ -216,7 +216,7 @@ trait Retrievable
      * @param  string|array<int, string>|null  $sort  Sort column(s) or raw expressions prefixed with 'raw:'
      * @param  string|array<int, string>|null  $direction  Sort direction(s) - only 'asc' or 'desc' allowed
      */
-    protected function sort(string|array|null $sort, string|array|null $direction): static
+    protected function order(string|array|null $sort, string|array|null $direction): static
     {
         if ($sort === null) {
             return $this;
@@ -255,7 +255,7 @@ trait Retrievable
         $this->builder->reorder();
 
         if ($sort !== null) {
-            $this->sort($sort, $direction);
+            $this->order($sort, $direction);
         }
 
         return $this;

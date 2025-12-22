@@ -21,7 +21,7 @@ describe('Retrievable Sort', function (): void {
         {
             public function applySort(string|array|null $sort, string|array|null $direction): static
             {
-                return $this->sort($sort, $direction);
+                return $this->order($sort, $direction);
             }
 
             public function applyReorder(string|array|null $sort = null, string|array|null $direction = null): static

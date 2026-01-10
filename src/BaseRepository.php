@@ -56,6 +56,20 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Retrieve records by conditions.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
+    {
+        return $this->where($conditions)
+            ->getRetrieveQuery($columns, $options)
+            ->get();
+    }
+
+    /**
      * Paginate with total count (for UI with page numbers).
      * Uses 2 queries: COUNT(*) + data fetch.
      *

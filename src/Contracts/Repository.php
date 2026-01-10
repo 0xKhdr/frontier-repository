@@ -74,6 +74,15 @@ interface Repository
     public function retrieve(array $columns = ['*'], array $options = []): Collection;
 
     /**
+     * Retrieve records by conditions.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection;
+
+    /**
      * Retrieve paginated results with total count.
      * Uses 2 queries: COUNT(*) + data fetch.
      *

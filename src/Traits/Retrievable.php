@@ -73,7 +73,11 @@ trait Retrievable
      */
     protected function select(array $columns = ['*']): static
     {
-        $safeColumns = array_map(function (string $column) {
+        $safeColumns = array_map(function ($column) {
+            if ($column instanceof \Illuminate\Contracts\Database\Query\Expression) {
+                return $column;
+            }
+
             if (Str::contains($column, '(') && Str::contains($column, ')')) {
                 return $this->validateRawExpression($column);
             }

@@ -119,7 +119,15 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function retrieve(array $columns = ['*'], array $options = []): Collection
     {
-        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn (): \Illuminate\Support\Collection => $this->repository->retrieve($columns, $options));
+        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn (): Collection => $this->repository->retrieve($columns, $options));
+    }
+
+    /**
+     * Retrieve records by conditions.
+     */
+    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
+    {
+        return $this->cached('retrieveBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options], fn (): Collection => $this->repository->retrieveBy($conditions, $columns, $options));
     }
 
     /**
@@ -134,7 +142,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
+        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
     }
 
     /**

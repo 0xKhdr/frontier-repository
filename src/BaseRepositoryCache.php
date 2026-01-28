@@ -12,6 +12,7 @@ use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
@@ -198,6 +199,30 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Find a record by its primary key (cached).
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<int, string>  $columns  Columns to select
+     */
+    public function findById(int|string $id, array $columns = ['*']): ?Model
+    {
+        return $this->cached('findById', ['id' => $id, 'columns' => $columns], fn (): ?\Illuminate\Database\Eloquent\Model => $this->repository->findById($id, $columns));
+    }
+
+    /**
+     * Find a record by its primary key or throw exception (cached).
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<int, string>  $columns  Columns to select
+     *
+     * @throws ModelNotFoundException
+     */
+    public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
+    {
+        return $this->cached('findByIdOrFail', ['id' => $id, 'columns' => $columns], fn (): \Illuminate\Database\Eloquent\Model => $this->repository->findByIdOrFail($id, $columns));
+    }
+
+    /**
      * Count records (cached).
      *
      * @param  array<string, mixed>  $conditions
@@ -239,6 +264,37 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Update a record by its primary key (invalidates cache).
+     *
+     * This method uses Eloquent's model-level update, ensuring that casts,
+     * mutators, accessors, and model events (updating/updated) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Model|null The updated model or null if not found
+     */
+    public function updateById(int|string $id, array $values): ?Model
+    {
+        return tap($this->repository->updateById($id, $values), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Update a record by its primary key or throw exception (invalidates cache).
+     *
+     * This method uses Eloquent's model-level update, ensuring that casts,
+     * mutators, accessors, and model events (updating/updated) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<string, mixed>  $values  Values to update
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateByIdOrFail(int|string $id, array $values): Model
+    {
+        return tap($this->repository->updateByIdOrFail($id, $values), fn (): bool => $this->clearCache());
+    }
+
+    /**
      * Delete records (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions
@@ -246,6 +302,35 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function delete(array $conditions): int
     {
         return tap($this->repository->delete($conditions), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete a record by its primary key (invalidates cache).
+     *
+     * This method uses Eloquent's model-level delete, ensuring that
+     * model events (deleting/deleted) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @return bool True if deleted, false if not found
+     */
+    public function deleteById(int|string $id): bool
+    {
+        return tap($this->repository->deleteById($id), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete a record by its primary key or throw exception (invalidates cache).
+     *
+     * This method uses Eloquent's model-level delete, ensuring that
+     * model events (deleting/deleted) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteByIdOrFail(int|string $id): bool
+    {
+        return tap($this->repository->deleteByIdOrFail($id), fn (): bool => $this->clearCache());
     }
 
     /**

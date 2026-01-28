@@ -11,6 +11,7 @@ use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Throwable;
 
@@ -158,6 +159,34 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Find a record by its primary key.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<int, string>  $columns  Columns to select
+     */
+    public function findById(int|string $id, array $columns = ['*']): ?Model
+    {
+        return $this->select($columns)
+            ->getBuilder()
+            ->find($id);
+    }
+
+    /**
+     * Find a record by its primary key or throw exception.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<int, string>  $columns  Columns to select
+     *
+     * @throws ModelNotFoundException
+     */
+    public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
+    {
+        return $this->select($columns)
+            ->getBuilder()
+            ->findOrFail($id);
+    }
+
+    /**
      * Update records matching conditions.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
@@ -169,6 +198,53 @@ abstract class BaseRepository implements RepositoryContract
         return $this->where($conditions)
             ->getBuilder()
             ->update($values);
+    }
+
+    /**
+     * Update a record by its primary key.
+     *
+     * This method uses Eloquent's model-level update, ensuring that casts,
+     * mutators, accessors, and model events (updating/updated) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Model|null The updated model or null if not found
+     */
+    public function updateById(int|string $id, array $values): ?Model
+    {
+        $model = $this->findById($id);
+
+        if ($model === null) {
+            return null;
+        }
+
+        $model->update($values);
+
+        $this->resetBuilder();
+
+        return $model;
+    }
+
+    /**
+     * Update a record by its primary key or throw exception.
+     *
+     * This method uses Eloquent's model-level update, ensuring that casts,
+     * mutators, accessors, and model events (updating/updated) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @param  array<string, mixed>  $values  Values to update
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateByIdOrFail(int|string $id, array $values): Model
+    {
+        $model = $this->findByIdOrFail($id);
+
+        $model->update($values);
+
+        $this->resetBuilder();
+
+        return $model;
     }
 
     /**
@@ -195,6 +271,51 @@ abstract class BaseRepository implements RepositoryContract
         return $this->where($conditions)
             ->getBuilder()
             ->delete();
+    }
+
+    /**
+     * Delete a record by its primary key.
+     *
+     * This method uses Eloquent's model-level delete, ensuring that
+     * model events (deleting/deleted) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     * @return bool True if deleted, false if not found
+     */
+    public function deleteById(int|string $id): bool
+    {
+        $model = $this->findById($id);
+
+        if ($model === null) {
+            return false;
+        }
+
+        $model->delete();
+
+        $this->resetBuilder();
+
+        return true;
+    }
+
+    /**
+     * Delete a record by its primary key or throw exception.
+     *
+     * This method uses Eloquent's model-level delete, ensuring that
+     * model events (deleting/deleted) are triggered.
+     *
+     * @param  int|string  $id  The primary key value
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteByIdOrFail(int|string $id): bool
+    {
+        $model = $this->findByIdOrFail($id);
+
+        $model->delete();
+
+        $this->resetBuilder();
+
+        return true;
     }
 
     /**

@@ -46,6 +46,25 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Create multiple records using Eloquent models.
+     *
+     * @param  array<int, array<string, mixed>>  $records  Array of records to create
+     * @return Collection<int, Model> Collection of created models
+     */
+    public function createMany(array $records): Collection
+    {
+        $models = new Collection;
+
+        foreach ($records as $record) {
+            $models->push($this->builder->create($record));
+        }
+
+        $this->resetBuilder();
+
+        return $models;
+    }
+
+    /**
      * Retrieve all records.
      *
      * @param  array<int, string>  $columns  Columns to select
@@ -201,6 +220,75 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Update records matching conditions or throw if none found.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<string, mixed>  $values  Values to update
+     * @return int Number of affected rows
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateOrFail(array $conditions, array $values): int
+    {
+        $affected = $this->update($conditions, $values);
+
+        if ($affected === 0) {
+            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+        }
+
+        return $affected;
+    }
+
+    /**
+     * Update records matching conditions using Eloquent models.
+     *
+     * This method retrieves all matching records and updates each using
+     * Eloquent's model-level update, ensuring that casts, mutators, accessors,
+     * and model events (updating/updated) are triggered for each record.
+     *
+     * Note: This is slower than update() but respects model lifecycle.
+     * Use update() for bulk operations where lifecycle isn't needed.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Collection<int, Model> Collection of updated models
+     */
+    public function updateBy(array $conditions, array $values): Collection
+    {
+        $models = $this->where($conditions)
+            ->getBuilder()
+            ->get();
+
+        foreach ($models as $model) {
+            $model->update($values);
+        }
+
+        $this->resetBuilder();
+
+        return $models;
+    }
+
+    /**
+     * Update records matching conditions using Eloquent models or throw if none found.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Collection<int, Model> Collection of updated models
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateByOrFail(array $conditions, array $values): Collection
+    {
+        $models = $this->updateBy($conditions, $values);
+
+        if ($models->isEmpty()) {
+            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+        }
+
+        return $models;
+    }
+
+    /**
      * Update a record by its primary key.
      *
      * This method uses Eloquent's model-level update, ensuring that casts,
@@ -271,6 +359,65 @@ abstract class BaseRepository implements RepositoryContract
         return $this->where($conditions)
             ->getBuilder()
             ->delete();
+    }
+
+    /**
+     * Delete records matching conditions or throw if none found.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return int Number of deleted rows
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteOrFail(array $conditions): int
+    {
+        $deleted = $this->delete($conditions);
+
+        if ($deleted === 0) {
+            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Delete records matching conditions using Eloquent models.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return Collection<int, Model> Collection of deleted models
+     */
+    public function deleteBy(array $conditions): Collection
+    {
+        $models = $this->where($conditions)
+            ->getBuilder()
+            ->get();
+
+        foreach ($models as $model) {
+            $model->delete();
+        }
+
+        $this->resetBuilder();
+
+        return $models;
+    }
+
+    /**
+     * Delete records matching conditions using Eloquent models or throw if none found.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return Collection<int, Model> Collection of deleted models
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteByOrFail(array $conditions): Collection
+    {
+        $models = $this->deleteBy($conditions);
+
+        if ($models->isEmpty()) {
+            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+        }
+
+        return $models;
     }
 
     /**

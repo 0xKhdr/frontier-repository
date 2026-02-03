@@ -4,274 +4,61 @@ declare(strict_types=1);
 
 namespace Frontier\Repositories\Contracts;
 
-use Illuminate\Contracts\Database\Eloquent\Builder;
-use Illuminate\Contracts\Pagination\CursorPaginator;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Contracts\Pagination\Paginator;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Collection;
-use Throwable;
+use Frontier\Repositories\Contracts\Concerns\Creatable;
+use Frontier\Repositories\Contracts\Concerns\Deletable;
+use Frontier\Repositories\Contracts\Concerns\Readable;
+use Frontier\Repositories\Contracts\Concerns\RepositoryUtility;
+use Frontier\Repositories\Contracts\Concerns\Updatable;
 
 /**
- * Contract for Eloquent-based repository implementations.
+ * Complete Repository Contract Interface.
+ *
+ * This interface combines all repository operation interfaces into a single contract.
+ * It follows the Interface Segregation Principle (ISP) by extending smaller,
+ * focused interfaces that can be used independently.
+ *
+ * ## Composed Interfaces
+ *
+ * - {@see Creatable} - CREATE operations (create, createMany, insert, firstOrCreate)
+ * - {@see Readable} - READ operations (find, retrieve, paginate, count)
+ * - {@see Updatable} - UPDATE operations (update, updateBy, updateById, upsert)
+ * - {@see Deletable} - DELETE operations (delete, deleteBy, deleteById)
+ * - {@see RepositoryUtility} - Utility operations (chunk, transaction, builder access)
+ *
+ * ## Usage
+ *
+ * You can type-hint against this interface when you need full repository functionality:
+ *
+ * ```php
+ * public function __construct(Repository $repository) {}
+ * ```
+ *
+ * Or use specific interfaces when you only need certain operations:
+ *
+ * ```php
+ * use Frontier\Repositories\Contracts\Concerns\Readable;
+ * use Frontier\Repositories\Contracts\Concerns\Creatable;
+ *
+ * public function __construct(Readable $repository) {}  // Only read operations
+ * public function __construct(Creatable $repository) {} // Only create operations
+ * ```
+ *
+ * Or combine specific interfaces:
+ *
+ * ```php
+ * use Frontier\Repositories\Contracts\Concerns\Readable;
+ * use Frontier\Repositories\Contracts\Concerns\Updatable;
+ *
+ * public function handle(Readable&Updatable $repository) {}
+ * ```
+ *
+ * ## Implementations
+ *
+ * @see \Frontier\Repositories\BaseRepository Default implementation
+ * @see \Frontier\Repositories\BaseRepositoryCache Cached decorator implementation
  */
-interface Repository
+interface Repository extends Creatable, Deletable, Readable, RepositoryUtility, Updatable
 {
-    /**
-     * Create a new model record.
-     *
-     * @param  array<string, mixed>  $values  The attributes to create
-     */
-    public function create(array $values): Model;
-
-    /**
-     * Update records matching conditions.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<string, mixed>  $values  Values to update
-     * @return int Number of affected rows
-     */
-    public function update(array $conditions, array $values): int;
-
-    /**
-     * Update a record by its primary key.
-     *
-     * This method uses Eloquent's model-level update, ensuring that casts,
-     * mutators, accessors, and model events (updating/updated) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<string, mixed>  $values  Values to update
-     * @return Model|null The updated model or null if not found
-     */
-    public function updateById(int|string $id, array $values): ?Model;
-
-    /**
-     * Update a record by its primary key or throw exception.
-     *
-     * This method uses Eloquent's model-level update, ensuring that casts,
-     * mutators, accessors, and model events (updating/updated) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<string, mixed>  $values  Values to update
-     *
-     * @throws ModelNotFoundException
-     */
-    public function updateByIdOrFail(int|string $id, array $values): Model;
-
-    /**
-     * Delete records matching conditions.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @return int Number of deleted rows
-     */
-    public function delete(array $conditions): int;
-
-    /**
-     * Delete a record by its primary key.
-     *
-     * This method uses Eloquent's model-level delete, ensuring that
-     * model events (deleting/deleted) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @return bool True if deleted, false if not found
-     */
-    public function deleteById(int|string $id): bool;
-
-    /**
-     * Delete a record by its primary key or throw exception.
-     *
-     * This method uses Eloquent's model-level delete, ensuring that
-     * model events (deleting/deleted) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     *
-     * @throws ModelNotFoundException
-     */
-    public function deleteByIdOrFail(int|string $id): bool;
-
-    /**
-     * Insert multiple records.
-     *
-     * @param  array<int|string, mixed>  $values  Records to insert
-     */
-    public function insert(array $values): bool;
-
-    /**
-     * Insert and get the new ID.
-     *
-     * @param  array<string, mixed>  $values  Values to insert
-     */
-    public function insertGetId(array $values): int;
-
-    /**
-     * Insert or update multiple records.
-     *
-     * @param  array<int, array<string, mixed>>  $values  Records to upsert
-     * @param  array<int, string>  $uniqueBy  Unique columns
-     * @param  array<int, string>|null  $update  Columns to update
-     */
-    public function upsert(array $values, array $uniqueBy, ?array $update = null): int;
-
-    /**
-     * Retrieve all records.
-     *
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    public function retrieve(array $columns = ['*'], array $options = []): Collection;
-
-    /**
-     * Retrieve records by conditions.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection;
-
-    /**
-     * Retrieve paginated results with total count.
-     * Uses 2 queries: COUNT(*) + data fetch.
-     *
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    public function retrievePaginate(
-        array $columns = ['*'],
-        array $options = [],
-        ?int $perPage = null,
-        ?int $page = null
-    ): LengthAwarePaginator;
-
-    /**
-     * Simple paginate without total count (for "Next/Prev" UI).
-     * Uses 1 query only - faster than retrievePaginate().
-     *
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    public function retrieveSimplePaginate(
-        array $columns = ['*'],
-        array $options = [],
-        ?int $perPage = null,
-        ?int $page = null
-    ): Paginator;
-
-    /**
-     * Cursor-based pagination for large datasets.
-     * O(1) performance - no offset scanning.
-     *
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    public function retrieveCursorPaginate(
-        array $columns = ['*'],
-        array $options = [],
-        ?int $perPage = null,
-        ?string $cursor = null
-    ): CursorPaginator;
-
-    /**
-     * Find a single record.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<int, string>  $columns  Columns to select
-     */
-    public function find(array $conditions, array $columns = ['*']): ?Model;
-
-    /**
-     * Find a record or throw exception.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<int, string>  $columns  Columns to select
-     *
-     * @throws ModelNotFoundException
-     */
-    public function findOrFail(array $conditions, array $columns = ['*']): Model;
-
-    /**
-     * Find a record by its primary key.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<int, string>  $columns  Columns to select
-     */
-    public function findById(int|string $id, array $columns = ['*']): ?Model;
-
-    /**
-     * Find a record by its primary key or throw exception.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<int, string>  $columns  Columns to select
-     *
-     * @throws ModelNotFoundException
-     */
-    public function findByIdOrFail(int|string $id, array $columns = ['*']): Model;
-
-    /**
-     * Update or create a record.
-     *
-     * @param  array<string, mixed>  $conditions  Attributes to match
-     * @param  array<string, mixed>  $values  Values to update/create
-     */
-    public function updateOrCreate(array $conditions, array $values): Model;
-
-    /**
-     * Find or create a record.
-     *
-     * @param  array<string, mixed>  $conditions  Attributes to match
-     * @param  array<string, mixed>  $values  Additional creation values
-     */
-    public function firstOrCreate(array $conditions, array $values = []): Model;
-
-    /**
-     * Count matching records.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     */
-    public function count(array $conditions = []): int;
-
-    /**
-     * Check if records exist.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     */
-    public function exists(array $conditions): bool;
-
-    /**
-     * Process records in chunks.
-     */
-    public function chunk(int $count, callable $callback): bool;
-
-    /**
-     * Execute within a transaction.
-     *
-     * @throws Throwable
-     */
-    public function transaction(callable $callback): mixed;
-
-    /**
-     * Set a base query builder.
-     */
-    public function withBuilder(Builder $builder): self;
-
-    /**
-     * Reset the query builder.
-     */
-    public function resetBuilder(): self;
-
-    /**
-     * Get the table name.
-     */
-    public function getTable(): string;
-
-    /**
-     * Get the model instance.
-     */
-    public function getModel(): Model;
-
-    /**
-     * Get the query builder.
-     */
-    public function getBuilder(): Builder;
+    // This interface combines all repository operations.
+    // See individual Concerns interfaces for method documentation.
 }

@@ -253,6 +253,16 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Create multiple records (invalidates cache).
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     */
+    public function createMany(array $records): Collection
+    {
+        return tap($this->repository->createMany($records), fn (): bool => $this->clearCache());
+    }
+
+    /**
      * Update records (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions
@@ -261,6 +271,49 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function update(array $conditions, array $values): int
     {
         return tap($this->repository->update($conditions, $values), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Update records matching conditions or throw if none found (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions
+     * @param  array<string, mixed>  $values
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateOrFail(array $conditions, array $values): int
+    {
+        return tap($this->repository->updateOrFail($conditions, $values), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Update records matching conditions using Eloquent models (invalidates cache).
+     *
+     * This method retrieves all matching records and updates each using
+     * Eloquent's model-level update, ensuring that casts, mutators, accessors,
+     * and model events (updating/updated) are triggered for each record.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Collection<int, Model> Collection of updated models
+     */
+    public function updateBy(array $conditions, array $values): Collection
+    {
+        return tap($this->repository->updateBy($conditions, $values), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Update records matching conditions using Eloquent models or throw if none found (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<string, mixed>  $values  Values to update
+     * @return Collection<int, Model> Collection of updated models
+     *
+     * @throws ModelNotFoundException
+     */
+    public function updateByOrFail(array $conditions, array $values): Collection
+    {
+        return tap($this->repository->updateByOrFail($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -302,6 +355,42 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function delete(array $conditions): int
     {
         return tap($this->repository->delete($conditions), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete records matching conditions or throw if none found (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteOrFail(array $conditions): int
+    {
+        return tap($this->repository->deleteOrFail($conditions), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete records matching conditions using Eloquent models (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return Collection<int, Model> Collection of deleted models
+     */
+    public function deleteBy(array $conditions): Collection
+    {
+        return tap($this->repository->deleteBy($conditions), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete records matching conditions using Eloquent models or throw if none found (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return Collection<int, Model> Collection of deleted models
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteByOrFail(array $conditions): Collection
+    {
+        return tap($this->repository->deleteByOrFail($conditions), fn (): bool => $this->clearCache());
     }
 
     /**

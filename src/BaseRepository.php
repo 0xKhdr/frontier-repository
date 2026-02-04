@@ -157,10 +157,14 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function find(array $conditions, array $columns = ['*']): ?Model
     {
-        return $this->select($columns)
+        $model = $this->select($columns)
             ->where($conditions)
             ->getBuilder()
             ->first();
+
+        $this->resetBuilder();
+
+        return $model;
     }
 
     /**
@@ -171,10 +175,14 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findOrFail(array $conditions, array $columns = ['*']): Model
     {
-        return $this->select($columns)
+        $model = $this->select($columns)
             ->where($conditions)
             ->getBuilder()
             ->firstOrFail();
+
+        $this->resetBuilder();
+
+        return $model;
     }
 
     /**
@@ -200,9 +208,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
     {
-        return $this->select($columns)
+        $model = $this->select($columns)
             ->getBuilder()
             ->findOrFail($id);
+
+        $this->resetBuilder();
+
+        return $model;
     }
 
     /**
@@ -214,9 +226,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function update(array $conditions, array $values): int
     {
-        return $this->where($conditions)
+        $affected = $this->where($conditions)
             ->getBuilder()
             ->update($values);
+
+        $this->resetBuilder();
+
+        return $affected;
     }
 
     /**
@@ -356,9 +372,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function delete(array $conditions): int
     {
-        return $this->where($conditions)
+        $deleted = $this->where($conditions)
             ->getBuilder()
             ->delete();
+
+        $this->resetBuilder();
+
+        return $deleted;
     }
 
     /**
@@ -472,9 +492,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function count(array $conditions = []): int
     {
-        return $this->where($conditions)
+        $count = $this->where($conditions)
             ->getBuilder()
             ->count();
+
+        $this->resetBuilder();
+
+        return $count;
     }
 
     /**
@@ -484,9 +508,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function exists(array $conditions): bool
     {
-        return $this->where($conditions)
+        $exists = $this->where($conditions)
             ->getBuilder()
             ->exists();
+
+        $this->resetBuilder();
+
+        return $exists;
     }
 
     /**

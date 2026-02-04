@@ -5,40 +5,17 @@ declare(strict_types=1);
 namespace Frontier\Repositories\Traits;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
-use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
  * Provides fluent query building methods for repositories.
+ *
+ * All methods create fresh builders to ensure query isolation.
  */
 trait Retrievable
 {
-    /**
-     * Build base query with all options except offset/limit.
-     *
-     * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
-     */
-    private function buildBaseQuery(array $columns = ['*'], array $options = []): static
-    {
-        $this->resetBuilder();
-
-        return $this->select(columns: $columns)
-            ->filters(Arr::get($options, 'filters'))
-            ->scopes(Arr::get($options, 'scopes'))
-            ->joins(Arr::get($options, 'joins'))
-            ->groupBy(Arr::get($options, 'group_by'))
-            ->distinct(Arr::get($options, 'distinct', false))
-            ->order(
-                sort: Arr::get($options, 'sort') ?? config('app.default_order.sort'),
-                direction: Arr::get($options, 'direction') ?? config('app.default_order.direction')
-            )
-            ->with(Arr::get($options, 'with'))
-            ->withCount(Arr::get($options, 'with_count'));
-    }
-
     /**
      * Build the retrieve query with all options applied.
      *
@@ -47,12 +24,11 @@ trait Retrievable
      */
     protected function getRetrieveQuery(array $columns = ['*'], array $options = []): Builder
     {
-        return $this->buildBaseQuery($columns, $options)
-            ->offset(
-                limit: Arr::get($options, 'limit', -1),
-                offset: Arr::get($options, 'offset')
-            )
-            ->getBuilder();
+        $query = $this->newQuery();
+
+        return $this->applyQueryOptions($query, $columns, $options)
+            ->when(Arr::get($options, 'limit'), fn (Builder $q, int $limit) => $q->limit($limit))
+            ->when(Arr::get($options, 'offset'), fn (Builder $q, int $offset) => $q->offset($offset));
     }
 
     /**
@@ -63,167 +39,87 @@ trait Retrievable
      */
     protected function getRetrieveQueryForPagination(array $columns = ['*'], array $options = []): Builder
     {
-        return $this->buildBaseQuery($columns, $options)->getBuilder();
+        return $this->applyQueryOptions($this->newQuery(), $columns, $options);
     }
 
     /**
-     * Select specific columns.
+     * Apply all query options to a builder.
      *
      * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
      */
-    protected function select(array $columns = ['*']): static
+    private function applyQueryOptions(Builder $query, array $columns = ['*'], array $options = []): Builder
     {
-        $safeColumns = array_map(function ($column) {
-            if ($column instanceof \Illuminate\Contracts\Database\Query\Expression) {
-                return $column;
-            }
+        $query->select($this->prefixColumns($columns));
 
-            if (Str::contains($column, '(') && Str::contains($column, ')')) {
-                return $this->validateRawExpression($column);
-            }
-
-            return $this->prefixTable($column);
-        }, $columns);
-
-        $this->builder->select($safeColumns);
-
-        return $this;
-    }
-
-    /**
-     * Apply where conditions.
-     *
-     * @param  array<string, mixed>|null  $conditions  Where conditions
-     */
-    protected function where(?array $conditions): static
-    {
-        if ($conditions) {
-            $this->builder->where($conditions);
+        // Apply filters
+        if ($filters = Arr::get($options, 'filters')) {
+            $query->filter($filters);
         }
 
-        return $this;
-    }
-
-    /**
-     * Apply model filters.
-     *
-     * @param  array<string, mixed>|null  $filters  Filter conditions
-     */
-    protected function filters(?array $filters): static
-    {
-        if ($filters) {
-            $this->builder->filter($filters);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Apply model scopes.
-     *
-     * @param  array<string, mixed>|null  $scopes  Scopes to apply
-     */
-    protected function scopes(?array $scopes): static
-    {
-        if ($scopes) {
+        // Apply scopes
+        if ($scopes = Arr::get($options, 'scopes')) {
             foreach ($scopes as $scope => $parameters) {
                 is_numeric($scope)
-                    ? $this->builder->{$parameters}()
-                    : $this->builder->{$scope}(...$parameters);
+                    ? $query->{$parameters}()
+                    : $query->{$scope}(...$parameters);
             }
         }
 
-        return $this;
-    }
-
-    /**
-     * Apply join clauses.
-     *
-     * @param  array<string, mixed>|null  $joins  Joins to apply
-     */
-    protected function joins(?array $joins): static
-    {
-        if ($joins) {
+        // Apply joins
+        if ($joins = Arr::get($options, 'joins')) {
             foreach ($joins as $join => $parameters) {
                 is_numeric($join)
-                    ? $this->builder->{$parameters}()
-                    : $this->builder->{$join}(...$parameters);
+                    ? $query->{$parameters}()
+                    : $query->{$join}(...$parameters);
             }
         }
 
-        return $this;
-    }
-
-    /**
-     * Eager load relationships.
-     *
-     * @param  array<int, string>|null  $relations  Relations to load
-     */
-    protected function with(?array $relations): static
-    {
-        if ($relations) {
-            $this->builder->with($relations);
+        // Apply group by
+        if ($groups = Arr::get($options, 'group_by')) {
+            $query->groupBy($groups);
         }
 
-        return $this;
-    }
-
-    /**
-     * Load relationship counts.
-     *
-     * @param  array<int, string>|null  $relations  Relations to count
-     */
-    protected function withCount(?array $relations): static
-    {
-        if ($relations) {
-            $this->builder->withCount($relations);
+        // Apply distinct
+        if (Arr::get($options, 'distinct', false)) {
+            $query->distinct();
         }
 
-        return $this;
-    }
+        // Apply sorting
+        $this->applyOrder(
+            $query,
+            Arr::get($options, 'sort') ?? config('app.default_order.sort'),
+            Arr::get($options, 'direction') ?? config('app.default_order.direction')
+        );
 
-    /**
-     * Group by columns.
-     *
-     * @param  array<int, string>|null  $groups  Columns to group by
-     */
-    protected function groupBy(?array $groups): static
-    {
-        if ($groups) {
-            $this->builder->groupBy($groups);
+        // Eager load relationships
+        if ($relations = Arr::get($options, 'with')) {
+            $query->with($relations);
         }
 
-        return $this;
-    }
-
-    /**
-     * Enable distinct results.
-     */
-    protected function distinct(bool $distinct): static
-    {
-        if ($distinct) {
-            $this->builder->distinct();
+        // Load relationship counts
+        if ($withCount = Arr::get($options, 'with_count')) {
+            $query->withCount($withCount);
         }
 
-        return $this;
+        return $query;
     }
 
     /**
-     * Apply sorting.
+     * Apply sorting to query.
      *
      * Supports:
      * - Single column: sort('name', 'asc')
      * - Multiple columns: sort(['name', 'created_at'], ['asc', 'desc'])
      * - Raw expressions: sort('raw:FIELD(status, "active", "pending", "closed")', 'asc')
-     * - NULLS LAST: sort('raw:column IS NULL, column', 'asc')
      *
      * @param  string|array<int, string>|null  $sort  Sort column(s) or raw expressions prefixed with 'raw:'
      * @param  string|array<int, string>|null  $direction  Sort direction(s) - only 'asc' or 'desc' allowed
      */
-    protected function order(string|array|null $sort, string|array|null $direction): static
+    private function applyOrder(Builder $query, string|array|null $sort, string|array|null $direction): void
     {
         if ($sort === null) {
-            return $this;
+            return;
         }
 
         $sortArray = (array) $sort;
@@ -237,32 +133,11 @@ trait Retrievable
 
             if (Str::startsWith($sortColumn, 'raw:')) {
                 $raw = Str::after($sortColumn, 'raw:');
-                $this->builder->orderByRaw($this->validateRawExpression($raw).' '.$dir);
+                $query->orderByRaw($this->validateRawExpression($raw).' '.$dir);
             } else {
-                $this->builder->orderBy($this->prefixTable($sortColumn), $dir);
+                $query->orderBy($this->prefixColumn($sortColumn), $dir);
             }
         }
-
-        return $this;
-    }
-
-    /**
-     * Clear all existing order by clauses and optionally apply new sorting.
-     *
-     * Useful when you need to override sorting set by previous query building.
-     *
-     * @param  string|array<int, string>|null  $sort  Optional new sort column(s)
-     * @param  string|array<int, string>|null  $direction  Optional new sort direction(s)
-     */
-    protected function reorder(string|array|null $sort = null, string|array|null $direction = null): static
-    {
-        $this->builder->reorder();
-
-        if ($sort !== null) {
-            $this->order($sort, $direction);
-        }
-
-        return $this;
     }
 
     /**
@@ -279,32 +154,42 @@ trait Retrievable
     }
 
     /**
-     * Apply offset and limit.
+     * Prefix columns with table name.
+     *
+     * @param  array<int, string>  $columns  Columns to prefix
+     * @return array<int, string> Prefixed columns
      */
-    protected function offset(int $limit, ?int $offset): static
+    protected function prefixColumns(array $columns): array
     {
-        if ($offset) {
-            $this->builder->offset($offset);
-        }
-        $this->builder->limit($limit);
+        return array_map(function ($column) {
+            if ($column instanceof \Illuminate\Contracts\Database\Query\Expression) {
+                return $column;
+            }
 
-        return $this;
+            if (Str::contains($column, '(') && Str::contains($column, ')')) {
+                return $this->validateRawExpression($column);
+            }
+
+            return $this->prefixColumn($column);
+        }, $columns);
     }
 
     /**
-     * Prefix column with table name if needed.
+     * Prefix a single column with table name if needed.
      */
-    protected function prefixTable(string $column): string
+    protected function prefixColumn(string $column): string
     {
-        // Allow raw column if explicitly safe, otherwise validate
+        // Validate column name
         if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+\w+)?$/', $column)) {
             throw new InvalidArgumentException("Invalid column name: {$column}");
         }
 
+        // Already has table prefix
         if (Str::contains($column, '.')) {
             return $column;
         }
 
+        // Explicit no-prefix marker
         if (Str::startsWith($column, '@')) {
             return Str::afterLast($column, '@');
         }

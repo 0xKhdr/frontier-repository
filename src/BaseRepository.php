@@ -18,19 +18,38 @@ use Throwable;
 /**
  * Eloquent-based repository implementation.
  *
- * Provides a fluent API for database operations with query builder chaining.
+ * Provides a fluent API for database operations. Each method creates a fresh
+ * query builder to ensure isolation and prevent state accumulation.
  */
 abstract class BaseRepository implements RepositoryContract
 {
     use Retrievable;
 
-    protected Builder $builder;
+    /**
+     * The Eloquent model instance.
+     */
+    protected Model $model;
 
+    /**
+     * Optional base builder with pre-applied scopes/filters.
+     */
     protected ?Builder $withBuilder = null;
 
     public function __construct(Model $model)
     {
-        $this->builder = $model->newQuery();
+        $this->model = $model;
+    }
+
+    /**
+     * Create a fresh query builder instance.
+     *
+     * If a base builder was set via withBuilder(), it clones that instead.
+     */
+    public function newQuery(): Builder
+    {
+        return $this->withBuilder instanceof Builder
+            ? $this->withBuilder->clone()
+            : $this->model->newQuery();
     }
 
     /**
@@ -40,9 +59,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function create(array $values): Model
     {
-        return tap($this->builder->create($values), function (Model $model): void {
-            $this->resetBuilder();
-        });
+        return $this->newQuery()->create($values);
     }
 
     /**
@@ -54,12 +71,11 @@ abstract class BaseRepository implements RepositoryContract
     public function createMany(array $records): Collection
     {
         $models = new Collection;
+        $query = $this->newQuery();
 
         foreach ($records as $record) {
-            $models->push($this->builder->create($record));
+            $models->push($query->create($record));
         }
-
-        $this->resetBuilder();
 
         return $models;
     }
@@ -84,8 +100,8 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
     {
-        return $this->where($conditions)
-            ->getRetrieveQuery($columns, $options)
+        return $this->getRetrieveQuery($columns, $options)
+            ->where($conditions)
             ->get();
     }
 
@@ -102,7 +118,7 @@ abstract class BaseRepository implements RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        $perPage ??= $this->getModel()->getPerPage();
+        $perPage ??= $this->model->getPerPage();
 
         return $this->getRetrieveQueryForPagination($columns, $options)
             ->paginate(perPage: $perPage, page: $page);
@@ -121,7 +137,7 @@ abstract class BaseRepository implements RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): Paginator {
-        $perPage ??= $this->getModel()->getPerPage();
+        $perPage ??= $this->model->getPerPage();
 
         return $this->getRetrieveQueryForPagination($columns, $options)
             ->simplePaginate(perPage: $perPage, page: $page);
@@ -143,7 +159,7 @@ abstract class BaseRepository implements RepositoryContract
         ?int $perPage = null,
         ?string $cursor = null
     ): CursorPaginator {
-        $perPage ??= $this->getModel()->getPerPage();
+        $perPage ??= $this->model->getPerPage();
 
         return $this->getRetrieveQueryForPagination($columns, $options)
             ->cursorPaginate(perPage: $perPage, cursor: $cursor);
@@ -157,14 +173,10 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function find(array $conditions, array $columns = ['*']): ?Model
     {
-        $model = $this->select($columns)
+        return $this->newQuery()
+            ->select($this->prefixColumns($columns))
             ->where($conditions)
-            ->getBuilder()
             ->first();
-
-        $this->resetBuilder();
-
-        return $model;
     }
 
     /**
@@ -175,14 +187,10 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findOrFail(array $conditions, array $columns = ['*']): Model
     {
-        $model = $this->select($columns)
+        return $this->newQuery()
+            ->select($this->prefixColumns($columns))
             ->where($conditions)
-            ->getBuilder()
             ->firstOrFail();
-
-        $this->resetBuilder();
-
-        return $model;
     }
 
     /**
@@ -193,13 +201,9 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findById(int|string $id, array $columns = ['*']): ?Model
     {
-        $model = $this->select($columns)
-            ->getBuilder()
+        return $this->newQuery()
+            ->select($this->prefixColumns($columns))
             ->find($id);
-
-        $this->resetBuilder();
-
-        return $model;
     }
 
     /**
@@ -212,13 +216,9 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
     {
-        $model = $this->select($columns)
-            ->getBuilder()
+        return $this->newQuery()
+            ->select($this->prefixColumns($columns))
             ->findOrFail($id);
-
-        $this->resetBuilder();
-
-        return $model;
     }
 
     /**
@@ -230,13 +230,9 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function update(array $conditions, array $values): int
     {
-        $affected = $this->where($conditions)
-            ->getBuilder()
+        return $this->newQuery()
+            ->where($conditions)
             ->update($values);
-
-        $this->resetBuilder();
-
-        return $affected;
     }
 
     /**
@@ -253,7 +249,7 @@ abstract class BaseRepository implements RepositoryContract
         $affected = $this->update($conditions, $values);
 
         if ($affected === 0) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+            throw (new ModelNotFoundException)->setModel(get_class($this->model));
         }
 
         return $affected;
@@ -275,15 +271,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function updateBy(array $conditions, array $values): Collection
     {
-        $models = $this->where($conditions)
-            ->getBuilder()
+        $models = $this->newQuery()
+            ->where($conditions)
             ->get();
 
         foreach ($models as $model) {
             $model->update($values);
         }
-
-        $this->resetBuilder();
 
         return $models;
     }
@@ -302,7 +296,7 @@ abstract class BaseRepository implements RepositoryContract
         $models = $this->updateBy($conditions, $values);
 
         if ($models->isEmpty()) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+            throw (new ModelNotFoundException)->setModel(get_class($this->model));
         }
 
         return $models;
@@ -328,8 +322,6 @@ abstract class BaseRepository implements RepositoryContract
 
         $model->update($values);
 
-        $this->resetBuilder();
-
         return $model;
     }
 
@@ -350,8 +342,6 @@ abstract class BaseRepository implements RepositoryContract
 
         $model->update($values);
 
-        $this->resetBuilder();
-
         return $model;
     }
 
@@ -363,9 +353,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function updateOrCreate(array $conditions, array $values): Model
     {
-        return tap($this->builder->updateOrCreate($conditions, $values), function (): void {
-            $this->resetBuilder();
-        });
+        return $this->newQuery()->updateOrCreate($conditions, $values);
     }
 
     /**
@@ -376,13 +364,9 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function delete(array $conditions): int
     {
-        $deleted = $this->where($conditions)
-            ->getBuilder()
+        return $this->newQuery()
+            ->where($conditions)
             ->delete();
-
-        $this->resetBuilder();
-
-        return $deleted;
     }
 
     /**
@@ -398,7 +382,7 @@ abstract class BaseRepository implements RepositoryContract
         $deleted = $this->delete($conditions);
 
         if ($deleted === 0) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+            throw (new ModelNotFoundException)->setModel(get_class($this->model));
         }
 
         return $deleted;
@@ -412,15 +396,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function deleteBy(array $conditions): Collection
     {
-        $models = $this->where($conditions)
-            ->getBuilder()
+        $models = $this->newQuery()
+            ->where($conditions)
             ->get();
 
         foreach ($models as $model) {
             $model->delete();
         }
-
-        $this->resetBuilder();
 
         return $models;
     }
@@ -438,7 +420,7 @@ abstract class BaseRepository implements RepositoryContract
         $models = $this->deleteBy($conditions);
 
         if ($models->isEmpty()) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->getModel()));
+            throw (new ModelNotFoundException)->setModel(get_class($this->model));
         }
 
         return $models;
@@ -463,8 +445,6 @@ abstract class BaseRepository implements RepositoryContract
 
         $model->delete();
 
-        $this->resetBuilder();
-
         return true;
     }
 
@@ -484,8 +464,6 @@ abstract class BaseRepository implements RepositoryContract
 
         $model->delete();
 
-        $this->resetBuilder();
-
         return true;
     }
 
@@ -496,13 +474,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function count(array $conditions = []): int
     {
-        $count = $this->where($conditions)
-            ->getBuilder()
-            ->count();
+        $query = $this->newQuery();
 
-        $this->resetBuilder();
+        if (! empty($conditions)) {
+            $query->where($conditions);
+        }
 
-        return $count;
+        return $query->count();
     }
 
     /**
@@ -512,13 +490,9 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function exists(array $conditions): bool
     {
-        $exists = $this->where($conditions)
-            ->getBuilder()
+        return $this->newQuery()
+            ->where($conditions)
             ->exists();
-
-        $this->resetBuilder();
-
-        return $exists;
     }
 
     /**
@@ -528,7 +502,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function insert(array $values): bool
     {
-        return $this->builder->insert($values);
+        return $this->newQuery()->insert($values);
     }
 
     /**
@@ -538,7 +512,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function insertGetId(array $values): int
     {
-        return $this->builder->insertGetId($values);
+        return $this->newQuery()->insertGetId($values);
     }
 
     /**
@@ -549,9 +523,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function firstOrCreate(array $conditions, array $values = []): Model
     {
-        return tap($this->builder->firstOrCreate($conditions, $values), function (): void {
-            $this->resetBuilder();
-        });
+        return $this->newQuery()->firstOrCreate($conditions, $values);
     }
 
     /**
@@ -563,7 +535,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function upsert(array $values, array $uniqueBy, ?array $update = null): int
     {
-        return $this->builder->upsert($values, $uniqueBy, $update);
+        return $this->newQuery()->upsert($values, $uniqueBy, $update);
     }
 
     /**
@@ -574,7 +546,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function chunk(int $count, callable $callback): bool
     {
-        return $this->builder->chunk($count, $callback);
+        return $this->newQuery()->chunk($count, $callback);
     }
 
     /**
@@ -584,19 +556,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function transaction(callable $callback): mixed
     {
-        return $this->getModel()->getConnection()->transaction($callback);
-    }
-
-    /**
-     * Reset the query builder.
-     */
-    public function resetBuilder(): static
-    {
-        $this->builder = $this->withBuilder instanceof \Illuminate\Contracts\Database\Eloquent\Builder
-            ? $this->withBuilder->clone()
-            : $this->getModel()->newQuery();
-
-        return $this;
+        return $this->model->getConnection()->transaction($callback);
     }
 
     /**
@@ -604,7 +564,7 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function getTable(): string
     {
-        return $this->getModel()->getTable();
+        return $this->model->getTable();
     }
 
     /**
@@ -612,11 +572,14 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function getModel(): Model
     {
-        return $this->builder->getModel();
+        return $this->model;
     }
 
     /**
      * Set a base builder for queries.
+     *
+     * When set, newQuery() will clone this builder instead of creating a fresh one.
+     * Useful for applying global scopes or filters to all queries.
      */
     public function withBuilder(Builder $builder): static
     {
@@ -626,10 +589,21 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * Get the current query builder.
+     * Get new query builder (alias for newQuery for interface compatibility).
      */
     public function getBuilder(): Builder
     {
-        return $this->builder;
+        return $this->newQuery();
+    }
+
+    /**
+     * Reset the builder state (no-op, kept for interface compatibility).
+     *
+     * @deprecated No longer needed since each method creates a fresh builder.
+     */
+    public function resetBuilder(): static
+    {
+        // No-op: Each method now creates its own fresh builder
+        return $this;
     }
 }

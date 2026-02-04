@@ -193,9 +193,13 @@ abstract class BaseRepository implements RepositoryContract
      */
     public function findById(int|string $id, array $columns = ['*']): ?Model
     {
-        return $this->select($columns)
+        $model = $this->select($columns)
             ->getBuilder()
             ->find($id);
+
+        $this->resetBuilder();
+
+        return $model;
     }
 
     /**

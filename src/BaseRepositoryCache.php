@@ -423,6 +423,28 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Delete multiple records (invalidates cache).
+     *
+     * @param  array<int, int|string>  $ids
+     */
+    public function deleteByIds(array $ids): int
+    {
+        return tap($this->repository->deleteByIds($ids), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Delete multiple records or throw if none found (invalidates cache).
+     *
+     * @param  array<int, int|string>  $ids
+     *
+     * @throws ModelNotFoundException
+     */
+    public function deleteByIdsOrFail(array $ids): int
+    {
+        return tap($this->repository->deleteByIdsOrFail($ids), fn (): bool => $this->clearCache());
+    }
+
+    /**
      * Update or create a record (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions

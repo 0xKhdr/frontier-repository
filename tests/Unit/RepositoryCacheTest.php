@@ -62,4 +62,23 @@ describe('RepositoryCache', function (): void {
         $decorator = new BaseRepositoryCache($innerRepo);
         $decorator->create([]);
     });
+
+    it('invalidates cache on deleteByIds', function (): void {
+        Config::set('repository-cache.enabled', true);
+
+        $innerRepo = Mockery::mock(Repository::class);
+        $cacheStore = Mockery::mock(CacheContract::class);
+
+        Cache::shouldReceive('store')->andReturn($cacheStore);
+
+        $innerRepo->shouldReceive('getTable')->andReturn('users');
+        $innerRepo->shouldReceive('deleteByIds')->once()->with([1, 2])->andReturn(2);
+
+        $cacheStore->shouldReceive('supportsTags')->andReturn(false);
+
+        $decorator = new BaseRepositoryCache($innerRepo);
+        $result = $decorator->deleteByIds([1, 2]);
+
+        expect($result)->toBe(2);
+    });
 });

@@ -154,4 +154,40 @@ interface Deletable
      * ```
      */
     public function deleteByIdOrFail(int|string $id): bool;
+
+    /**
+     * Delete multiple records by their primary keys using Eloquent models.
+     *
+     * This method retrieves all matching records and deletes each using
+     * Eloquent's model-level delete, ensuring that:
+     * - Model events (deleting/deleted) are fired for each record
+     * - Soft deletes are respected (if model uses SoftDeletes trait)
+     *
+     * @param  array<int, int|string>  $ids  The primary key values
+     * @return int Number of deleted rows
+     *
+     * @example
+     * ```php
+     * $deleted = $repository->deleteByIds([1, 2, 3]);
+     * ```
+     */
+    public function deleteByIds(array $ids): int;
+
+    /**
+     * Delete multiple records by their primary keys or throw if none found.
+     *
+     * Same as deleteByIds() but throws ModelNotFoundException if no records were deleted.
+     *
+     * @param  array<int, int|string>  $ids  The primary key values
+     * @return int Number of deleted rows (always >= 1)
+     *
+     * @throws ModelNotFoundException When no records match the IDs
+     *
+     * @example
+     * ```php
+     * $deleted = $repository->deleteByIdsOrFail([1, 2, 3]);
+     * // Throws ModelNotFoundException if none of the IDs exist
+     * ```
+     */
+    public function deleteByIdsOrFail(array $ids): int;
 }

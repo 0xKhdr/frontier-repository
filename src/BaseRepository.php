@@ -468,6 +468,40 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * @throws Throwable
+     */
+    public function deleteByIds(array $ids): int
+    {
+        return $this->transaction(function () use ($ids): int {
+            $deleted = 0;
+            $this->newQuery()
+                ->whereIn('id', $ids)
+                ->cursor()
+                ->each(function (Model $model) use (&$deleted): void {
+                    $model->delete();
+                    ++$deleted;
+                });
+
+            return $deleted;
+        });
+    }
+
+    /**
+     * @throws ModelNotFoundException
+     * @throws Throwable
+     */
+    public function deleteByIdsOrFail(array $ids): int
+    {
+        $deleted = $this->deleteByIds($ids);
+
+        if ($deleted === 0) {
+            throw (new ModelNotFoundException)->setModel($this->model::class);
+        }
+
+        return $deleted;
+    }
+
+    /**
      * Count records matching conditions.
      *
      * @param  array<string, mixed>  $conditions  Where conditions

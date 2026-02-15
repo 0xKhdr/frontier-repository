@@ -125,6 +125,27 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Retrieve paginated records by conditions.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     */
+    public function retrieveByPaginate(
+        array $conditions,
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): LengthAwarePaginator {
+        $perPage ??= $this->model->getPerPage();
+
+        return $this->getRetrieveQueryForPagination($columns, $options)
+            ->where($conditions)
+            ->paginate(perPage: $perPage, page: $page);
+    }
+
+    /**
      * Simple paginate without total count (for "Next/Prev" UI).
      * Uses 1 query only - faster than retrievePaginate().
      *

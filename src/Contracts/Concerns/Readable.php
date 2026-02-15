@@ -202,6 +202,26 @@ interface Readable
     ): LengthAwarePaginator;
 
     /**
+     * Retrieve paginated results matching conditions.
+     *
+     * Similar to retrievePaginate() but filters by conditions first.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     * @param  int|null  $perPage  Items per page
+     * @param  int|null  $page  Page number
+     * @return LengthAwarePaginator Paginator with total count
+     */
+    public function retrieveByPaginate(
+        array $conditions,
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): LengthAwarePaginator;
+
+    /**
      * Simple pagination without total count.
      *
      * Returns a simple paginator with only "Next/Previous" navigation.

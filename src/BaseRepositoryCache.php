@@ -147,6 +147,23 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Retrieve paginated records by conditions (cached).
+     *
+     * @param  array<string, mixed>  $conditions
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     */
+    public function retrieveByPaginate(
+        array $conditions,
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): LengthAwarePaginator {
+        return $this->cached('retrieveByPaginate', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrieveByPaginate($conditions, $columns, $options, $perPage, $page));
+    }
+
+    /**
      * Simple paginate without total count (cached).
      *
      * @param  array<int, string>  $columns

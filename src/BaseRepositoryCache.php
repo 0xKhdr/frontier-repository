@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
+use ReflectionException;
+use ReflectionFunction;
 
 /**
  * Cacheable repository decorator.
@@ -601,12 +603,19 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Generate a unique cache key.
+     * Generate a closure-safe cache key.
      *
-     * @param  array<string, mixed>  $params
+     * Overrides the parent to replace Closure instances with a stable
+     * fingerprint (file and line range) before serialization, preventing
+     * "Serialization of 'Closure' is not allowed" exceptions.
+     *
+     * @param array<string, mixed> $params
+     * @throws ReflectionException
      */
     protected function key(string $method, array $params = []): string
     {
+        $this->replaceClosures($params);
+
         $this->ksortRecursive($params);
 
         return $this->getCachePrefix().':'.$method.':'.md5(serialize($params));
@@ -655,5 +664,37 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
                 $this->ksortRecursive($value);
             }
         }
+    }
+
+
+    /**
+     * Recursively replace Closure instances with deterministic string fingerprints.
+     *
+     * Uses ReflectionFunction to derive a stable key from the closure's
+     * source file and line range, making the cache key consistent across requests.
+     *
+     * @param array<string, mixed> $params
+     * @throws ReflectionException
+     */
+    private function replaceClosures(array &$params): void
+    {
+        foreach ($params as &$value) {
+            if ($value instanceof Closure) {
+                $value = $this->closureFingerprint($value);
+            } elseif (is_array($value)) {
+                $this->replaceClosures($value);
+            }
+        }
+    }
+
+    /**
+     * Generate a deterministic fingerprint for a Closure.
+     * @throws ReflectionException
+     */
+    private function closureFingerprint(Closure $closure): string
+    {
+        $ref = new ReflectionFunction($closure);
+
+        return '__closure@' . $ref->getFileName() . ':' . $ref->getStartLine() . '-' . $ref->getEndLine();
     }
 }

@@ -500,7 +500,7 @@ abstract class BaseRepository implements RepositoryContract
                 ->cursor()
                 ->each(function (Model $model) use (&$deleted): void {
                     $model->delete();
-                    ++$deleted;
+                    $deleted++;
                 });
 
             return $deleted;

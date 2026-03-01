@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Frontier\Repositories;
 
+use Closure;
 use Frontier\Repositories\Contracts\Repository as RepositoryContract;
 use Frontier\Repositories\Contracts\RepositoryCache as RepositoryCacheContract;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
@@ -15,9 +16,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Throwable;
 use ReflectionException;
 use ReflectionFunction;
+use Throwable;
 
 /**
  * Cacheable repository decorator.
@@ -609,7 +610,8 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      * fingerprint (file and line range) before serialization, preventing
      * "Serialization of 'Closure' is not allowed" exceptions.
      *
-     * @param array<string, mixed> $params
+     * @param  array<string, mixed>  $params
+     *
      * @throws ReflectionException
      */
     protected function key(string $method, array $params = []): string
@@ -666,14 +668,14 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         }
     }
 
-
     /**
      * Recursively replace Closure instances with deterministic string fingerprints.
      *
      * Uses ReflectionFunction to derive a stable key from the closure's
      * source file and line range, making the cache key consistent across requests.
      *
-     * @param array<string, mixed> $params
+     * @param  array<string, mixed>  $params
+     *
      * @throws ReflectionException
      */
     private function replaceClosures(array &$params): void
@@ -689,12 +691,13 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Generate a deterministic fingerprint for a Closure.
+     *
      * @throws ReflectionException
      */
     private function closureFingerprint(Closure $closure): string
     {
         $ref = new ReflectionFunction($closure);
 
-        return '__closure@' . $ref->getFileName() . ':' . $ref->getStartLine() . '-' . $ref->getEndLine();
+        return '__closure@'.$ref->getFileName().':'.$ref->getStartLine().'-'.$ref->getEndLine();
     }
 }

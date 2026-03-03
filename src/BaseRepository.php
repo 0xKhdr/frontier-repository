@@ -270,7 +270,7 @@ abstract class BaseRepository implements RepositoryContract
         $affected = $this->update($conditions, $values);
 
         if ($affected === 0) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->model));
+            throw (new ModelNotFoundException)->setModel($this->model::class);
         }
 
         return $affected;
@@ -317,7 +317,7 @@ abstract class BaseRepository implements RepositoryContract
         $models = $this->updateBy($conditions, $values);
 
         if ($models->isEmpty()) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->model));
+            throw (new ModelNotFoundException)->setModel($this->model::class);
         }
 
         return $models;
@@ -403,7 +403,7 @@ abstract class BaseRepository implements RepositoryContract
         $deleted = $this->delete($conditions);
 
         if ($deleted === 0) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->model));
+            throw (new ModelNotFoundException)->setModel($this->model::class);
         }
 
         return $deleted;
@@ -441,7 +441,7 @@ abstract class BaseRepository implements RepositoryContract
         $models = $this->deleteBy($conditions);
 
         if ($models->isEmpty()) {
-            throw (new ModelNotFoundException)->setModel(get_class($this->model));
+            throw (new ModelNotFoundException)->setModel($this->model::class);
         }
 
         return $models;
@@ -489,6 +489,14 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Delete multiple records by their primary keys using Eloquent models.
+     *
+     * Runs inside a transaction and uses a cursor for memory efficiency.
+     * Model events (deleting/deleted) are triggered for each record.
+     *
+     * @param  array<int, int|string>  $ids  The primary key values to delete
+     * @return int Number of deleted rows
+     *
      * @throws Throwable
      */
     public function deleteByIds(array $ids): int
@@ -496,7 +504,7 @@ abstract class BaseRepository implements RepositoryContract
         return $this->transaction(function () use ($ids): int {
             $deleted = 0;
             $this->newQuery()
-                ->whereIn('id', $ids)
+                ->whereIn($this->model->getKeyName(), $ids)
                 ->cursor()
                 ->each(function (Model $model) use (&$deleted): void {
                     $model->delete();
@@ -508,6 +516,11 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
+     * Delete multiple records by their primary keys or throw if none found.
+     *
+     * @param  array<int, int|string>  $ids  The primary key values to delete
+     * @return int Number of deleted rows
+     *
      * @throws ModelNotFoundException
      * @throws Throwable
      */

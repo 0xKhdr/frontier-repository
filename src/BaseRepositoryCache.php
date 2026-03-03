@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use ReflectionException;
 use ReflectionFunction;
 use Throwable;
@@ -85,6 +86,12 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Clear all cache for this repository.
+     *
+     * Returns true when the cache was successfully flushed via tag support
+     * (Redis, Memcached). Returns false for drivers that do not support tags
+     * (file, array, database) because individual keys cannot be tracked without
+     * additional infrastructure. Use a tag-aware driver in production, or
+     * disable caching entirely via REPOSITORY_CACHE_ENABLED=false.
      */
     public function clearCache(): bool
     {
@@ -92,7 +99,12 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
             return Cache::store($this->getCacheDriver())->tags([$this->getCachePrefix()])->flush();
         }
 
-        return true;
+        Log::warning('Repository cache could not be cleared: the configured cache driver does not support tags. Switch to a tag-aware driver (Redis, Memcached) or disable caching via REPOSITORY_CACHE_ENABLED=false.', [
+            'driver' => $this->getCacheDriver() ?? 'default',
+            'prefix' => $this->getCachePrefix(),
+        ]);
+
+        return false;
     }
 
     /**

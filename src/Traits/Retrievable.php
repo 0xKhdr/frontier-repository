@@ -179,8 +179,8 @@ trait Retrievable
      */
     protected function prefixColumn(string $column): string
     {
-        // Validate column name
-        if (! preg_match('/^[a-zA-Z0-9_\.\*]+(\s+as\s+\w+)?$/', $column)) {
+        // Validate column name (@ prefix is the explicit no-table-prefix marker)
+        if (! preg_match('/^@?[a-zA-Z0-9_\.\*]+(\s+as\s+\w+)?$/', $column)) {
             throw new InvalidArgumentException("Invalid column name: {$column}");
         }
 
@@ -200,11 +200,15 @@ trait Retrievable
     /**
      * Validate raw SQL expression for safety.
      *
+     * Blocks a broad set of DDL/DML keywords that have no place in ORDER BY
+     * or SELECT expressions. This is a defence-in-depth measure — Eloquent
+     * parameterises bound values, but raw expressions are interpolated as-is.
+     *
      * @throws InvalidArgumentException
      */
     protected function validateRawExpression(string $expression): string
     {
-        if (preg_match('/\b(delete|update|insert|drop|alter)\b/i', $expression)) {
+        if (preg_match('/\b(delete|update|insert|drop|alter|truncate|create|union|exec|execute|grant|revoke)\b/i', $expression)) {
             throw new InvalidArgumentException('Potentially dangerous raw expression');
         }
 

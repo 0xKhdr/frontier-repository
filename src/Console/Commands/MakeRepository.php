@@ -72,16 +72,15 @@ class MakeRepository extends GeneratorCommand
 
     /**
      * Check if --module was passed without a value.
+     *
+     * Uses Symfony's InputInterface::hasParameterOption() instead of reading
+     * $_SERVER['argv'] directly, making the check testable and framework-consistent.
+     * hasParameterOption('--module') is true only when the bare flag is present;
+     * it returns false when --module=value is supplied.
      */
     protected function moduleOptionWasPassedWithoutValue(): bool
     {
-        foreach ($_SERVER['argv'] ?? [] as $arg) {
-            if ($arg === '--module' || str_starts_with((string) $arg, '--module=')) {
-                return $arg === '--module';
-            }
-        }
-
-        return false;
+        return $this->input->hasParameterOption('--module') && $this->option('module') === null;
     }
 
     /**

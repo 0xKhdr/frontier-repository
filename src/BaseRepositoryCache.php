@@ -37,6 +37,11 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     protected bool $forceRefresh = false;
 
     /**
+     * Per-call TTL override — consumed after one cached() call.
+     */
+    protected ?int $onceTtl = null;
+
+    /**
      * Create a new cacheable repository decorator.
      *
      * @param  RepositoryContract  $repository  The repository to wrap
@@ -123,6 +128,21 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function refreshCache(): static
     {
         $this->forceRefresh = true;
+
+        return $this;
+    }
+
+    /**
+     * Override the cache TTL for the next read operation only.
+     *
+     * Resets automatically after the next cached() call.
+     *
+     *   $repo->cacheFor(30)->findById($id);   // cached for 30 seconds
+     *   $repo->findById($id);                  // back to default TTL
+     */
+    public function cacheFor(int $seconds): static
+    {
+        $this->onceTtl = $seconds;
 
         return $this;
     }
@@ -252,6 +272,42 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
     {
         return $this->cached('findByIdOrFail', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findByIdOrFail($id, $columns));
+    }
+
+    /**
+     * Find multiple records by their primary keys (cached).
+     *
+     * @param  array<int, int|string>  $ids
+     * @param  array<int, string>  $columns
+     * @return Collection<int, Model>
+     */
+    public function findByIds(array $ids, array $columns = ['*']): Collection
+    {
+        return $this->cached('findByIds', ['ids' => $ids, 'columns' => $columns], fn () => $this->repository->findByIds($ids, $columns));
+    }
+
+    /**
+     * Find a single record matching any of the provided condition groups (OR logic) (cached).
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     */
+    public function findByOr(array $conditionGroups, array $columns = ['*']): ?Model
+    {
+        return $this->cached('findByOr', ['conditionGroups' => $conditionGroups, 'columns' => $columns], fn () => $this->repository->findByOr($conditionGroups, $columns));
+    }
+
+    /**
+     * Retrieve records matching any of the provided condition groups (OR logic) (cached).
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     * @return Collection<int, Model>
+     */
+    public function retrieveByOr(array $conditionGroups, array $columns = ['*'], array $options = []): Collection
+    {
+        return $this->cached('retrieveByOr', ['conditionGroups' => $conditionGroups, 'columns' => $columns, 'options' => $options], fn () => $this->repository->retrieveByOr($conditionGroups, $columns, $options));
     }
 
     /**
@@ -508,6 +564,36 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
+     * Insert multiple records in chunks (invalidates cache).
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     */
+    public function insertMany(array $records, int $chunkSize = 500): bool
+    {
+        return tap($this->repository->insertMany($records, $chunkSize), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Restore soft-deleted records matching conditions (invalidates cache).
+     *
+     * @param  array<string, mixed>  $conditions
+     */
+    public function restore(array $conditions): int
+    {
+        return tap($this->repository->restore($conditions), fn (): bool => $this->clearCache());
+    }
+
+    /**
+     * Restore a single soft-deleted record by its primary key (invalidates cache).
+     *
+     * @param  int|string  $id
+     */
+    public function restoreById(int|string $id): bool
+    {
+        return tap($this->repository->restoreById($id), fn (): bool => $this->clearCache());
+    }
+
+    /**
      * Find or create a record (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions
@@ -593,26 +679,31 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Cache a query result.
      *
+     * Flags ($skipCache, $forceRefresh, $onceTtl) are reset unconditionally via
+     * try-finally — even if the callback or the cache driver throws an exception —
+     * preventing flag leakage into subsequent calls.
+     *
      * @param  array<string, mixed>  $params
      */
     protected function cached(string $method, array $params, callable $callback): mixed
     {
-        if (! $this->shouldCache()) {
+        try {
+            if (! $this->shouldCache()) {
+                return $callback();
+            }
+
+            $key = $this->key($method, $params);
+            $store = $this->store();
+            $ttl = $this->onceTtl ?? $this->ttl;
+
+            if ($this->forceRefresh) {
+                $store->forget($key);
+            }
+
+            return $store->remember($key, $ttl, $callback);
+        } finally {
             $this->resetFlags();
-
-            return $callback();
         }
-
-        $key = $this->key($method, $params);
-        $store = $this->store();
-
-        if ($this->forceRefresh) {
-            $store->forget($key);
-        }
-
-        $this->resetFlags();
-
-        return $store->remember($key, $this->ttl, $callback);
     }
 
     /**
@@ -650,12 +741,16 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Reset cache control flags.
+     * Reset all cache control flags.
+     *
+     * Called unconditionally in the cached() finally block to prevent
+     * flag leakage when the callback or cache driver throws an exception.
      */
     protected function resetFlags(): void
     {
         $this->skipCache = false;
         $this->forceRefresh = false;
+        $this->onceTtl = null;
     }
 
     /**

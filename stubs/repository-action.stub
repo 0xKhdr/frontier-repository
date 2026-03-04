@@ -6,11 +6,35 @@ namespace $NAMESPACE$;
 
 use Frontier\Repositories\BaseAction;
 
+/**
+ * Repository-backed action class.
+ *
+ * Inject the repository in the constructor and implement handle() with the
+ * action's logic. Access the repository via $this->repository().
+ *
+ * Example:
+ *
+ *   class CreateUserAction extends BaseAction
+ *   {
+ *       public function __construct(UserRepository $repository)
+ *       {
+ *           $this->repository = $repository;
+ *       }
+ *
+ *       public function handle(array $data): User
+ *       {
+ *           return $this->repository()->create($data);
+ *       }
+ *   }
+ */
 class $CLASS_NAME$ extends BaseAction
 {
     public function __construct(
-        // Inject dependencies here
-    ) {}
+        // Inject your repository here:
+        // UserRepository $repository
+    ) {
+        // $this->repository = $repository;
+    }
 
     public function handle(): mixed
     {

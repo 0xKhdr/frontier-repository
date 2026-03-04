@@ -5,7 +5,41 @@ declare(strict_types=1);
 namespace $NAMESPACE$;
 
 use Frontier\Repositories\BaseRepository;
+use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Eloquent repository implementation for the associated model.
+ *
+ * All standard CRUD operations are inherited from BaseRepository.
+ * Add domain-specific query methods below using the fluent API.
+ *
+ * Bind to your interface in AppServiceProvider::register():
+ *
+ *   $this->app->bind($CLASS_NAME$Interface::class, $CLASS_NAME$::class);
+ *
+ * Or with the caching decorator:
+ *
+ *   $this->app->bind($CLASS_NAME$Interface::class, fn () =>
+ *       new $CLASS_NAME$Cache(new $CLASS_NAME$(new YourModel))
+ *   );
+ */
 class $CLASS_NAME$ extends BaseRepository
 {
+    public function __construct()
+    {
+        // Replace `new Model` with the Eloquent model this repository manages:
+        parent::__construct(new Model);
+    }
+
+    // Add domain-specific query methods here. Examples:
+    //
+    // public function findActive(array $columns = ['*']): Collection
+    // {
+    //     return $this->retrieve($columns, ['scopes' => ['active']]);
+    // }
+    //
+    // public function findByEmail(string $email): ?Model
+    // {
+    //     return $this->find(['email' => $email]);
+    // }
 }

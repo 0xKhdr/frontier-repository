@@ -118,6 +118,45 @@ interface Readable
      */
     public function findByIdOrFail(int|string $id, array $columns = ['*']): Model;
 
+    /**
+     * Find multiple records by their primary keys.
+     *
+     * Returns a collection of found records. Records for missing IDs are silently
+     * omitted — use findByIdsOrFail() if you need strict existence checking.
+     * Result order follows the database's natural ordering, not the input array order.
+     *
+     * @param  array<int, int|string>  $ids     Primary key values to look up
+     * @param  array<int, string>  $columns  Columns to select
+     * @return Collection<int, Model>
+     *
+     * @example
+     * ```php
+     * $users = $repository->findByIds([1, 2, 3]);
+     * $users = $repository->findByIds([1, 2, 3], ['id', 'name', 'email']);
+     * ```
+     */
+    public function findByIds(array $ids, array $columns = ['*']): Collection;
+
+    /**
+     * Find a single record matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together.
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups  Array of condition arrays
+     * @param  array<int, string>  $columns  Columns to select
+     * @return Model|null
+     *
+     * @example
+     * ```php
+     * // WHERE (email = 'a@b.com') OR (username = 'johndoe')
+     * $user = $repository->findByOr([
+     *     ['email' => 'a@b.com'],
+     *     ['username' => 'johndoe'],
+     * ]);
+     * ```
+     */
+    public function findByOr(array $conditionGroups, array $columns = ['*']): ?Model;
+
     /*
     |--------------------------------------------------------------------------
     | Multiple Records Operations
@@ -141,6 +180,28 @@ interface Readable
      * ```
      */
     public function retrieve(array $columns = ['*'], array $options = []): Collection;
+
+    /**
+     * Retrieve records matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together.
+     * Use this when you need `WHERE (a = 1) OR (b = 2)` logic.
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups  Array of condition arrays
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options
+     * @return Collection<int, Model>
+     *
+     * @example
+     * ```php
+     * // WHERE (status = 'active') OR (role = 'admin')
+     * $users = $repository->retrieveByOr([
+     *     ['status' => 'active'],
+     *     ['role' => 'admin'],
+     * ]);
+     * ```
+     */
+    public function retrieveByOr(array $conditionGroups, array $columns = ['*'], array $options = []): Collection;
 
     /**
      * Retrieve records matching conditions.

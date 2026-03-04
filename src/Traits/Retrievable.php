@@ -23,8 +23,20 @@ trait Retrievable
      * parameterises bound values but raw expressions are interpolated as-is.
      * Word boundaries (\b) prevent false positives on column names that happen
      * to contain a keyword substring (e.g. "created_at" contains "create").
+     *
+     * Blocked keywords and rationale:
+     *   delete, update, insert — DML; can modify data
+     *   drop, alter, truncate  — DDL; can destroy schema
+     *   exec, execute          — stored procedure / shell execution
+     *   grant, revoke          — privilege escalation
+     *
+     * Intentionally NOT blocked:
+     *   union  — not an injection risk in ORDER BY / SELECT context; needed for
+     *            FIELD() expressions and subquery ordering patterns
+     *   create — not dangerous in ORDER BY context; removing avoids false positives
+     *            on raw expressions that happen to mention "create" as part of an alias
      */
-    private const DANGEROUS_SQL_PATTERN = '/\b(delete|update|insert|drop|alter|truncate|create|union|exec|execute|grant|revoke)\b/i';
+    private const DANGEROUS_SQL_PATTERN = '/\b(delete|update|insert|drop|alter|truncate|exec|execute|grant|revoke)\b/i';
 
     /**
      * Build the retrieve query with all options applied.
@@ -70,18 +82,26 @@ trait Retrievable
         // Apply scopes
         if ($scopes = Arr::get($options, 'scopes')) {
             foreach ($scopes as $scope => $parameters) {
-                is_numeric($scope)
-                    ? $query->{$parameters}()
-                    : $query->{$scope}(...$parameters);
+                if (is_numeric($scope)) {
+                    $this->validateScopeName((string) $parameters);
+                    $query->{$parameters}();
+                } else {
+                    $this->validateScopeName($scope);
+                    $query->{$scope}(...$parameters);
+                }
             }
         }
 
         // Apply joins
         if ($joins = Arr::get($options, 'joins')) {
             foreach ($joins as $join => $parameters) {
-                is_numeric($join)
-                    ? $query->{$parameters}()
-                    : $query->{$join}(...$parameters);
+                if (is_numeric($join)) {
+                    $this->validateScopeName((string) $parameters);
+                    $query->{$parameters}();
+                } else {
+                    $this->validateScopeName($join);
+                    $query->{$join}(...$parameters);
+                }
             }
         }
 
@@ -98,8 +118,8 @@ trait Retrievable
         // Apply sorting
         $this->applyOrder(
             $query,
-            Arr::get($options, 'sort') ?? config('app.default_order.sort'),
-            Arr::get($options, 'direction') ?? config('app.default_order.direction')
+            Arr::get($options, 'sort'),
+            Arr::get($options, 'direction')
         );
 
         // Eager load relationships
@@ -205,6 +225,23 @@ trait Retrievable
         }
 
         return $this->getModel()->getTable().'.'.$column;
+    }
+
+    /**
+     * Validate that a scope or join name is a safe PHP identifier.
+     *
+     * Prevents invocation of arbitrary query builder methods if scope/join names
+     * originate from untrusted sources. Scope names must match the pattern of a
+     * valid PHP method name: start with a letter or underscore, contain only
+     * alphanumeric characters and underscores.
+     *
+     * @throws InvalidArgumentException When the name contains invalid characters
+     */
+    private function validateScopeName(string $name): void
+    {
+        if (! preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $name)) {
+            throw new InvalidArgumentException("Invalid scope or join name: {$name}");
+        }
     }
 
     /**

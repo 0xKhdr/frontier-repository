@@ -6,6 +6,7 @@ namespace Frontier\Repositories;
 
 use Frontier\Repositories\Contracts\Repository as RepositoryContract;
 use Frontier\Repositories\Traits\Retrievable;
+use Frontier\Repositories\ValueObjects\QueryOptions;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -65,30 +66,61 @@ abstract class BaseRepository implements RepositoryContract
     /**
      * Create multiple records using Eloquent models.
      *
+     * Wraps all inserts in a single transaction for atomicity — either all records
+     * are created or none are. Each record fires Eloquent model events (creating/created),
+     * applies casts and mutators.
+     *
+     * For high-volume inserts where lifecycle events are not required, prefer insertMany().
+     *
      * @param  array<int, array<string, mixed>>  $records  Array of records to create
      * @return Collection<int, Model> Collection of created models
      */
     public function createMany(array $records): Collection
     {
-        $models = new Collection;
-        $query = $this->newQuery();
+        return $this->transaction(function () use ($records): Collection {
+            $models = new Collection;
+            $query = $this->newQuery();
 
-        foreach ($records as $record) {
-            $models->push($query->create($record));
+            foreach ($records as $record) {
+                $models->push($query->create($record));
+            }
+
+            return $models;
+        });
+    }
+
+    /**
+     * Insert multiple records using chunked bulk INSERT statements.
+     *
+     * Bypasses Eloquent model instantiation entirely — no model events (creating/created),
+     * casts, mutators, or timestamps are applied. Use this for high-volume data imports
+     * where performance matters more than lifecycle hooks.
+     *
+     * Prefer createMany() when model events and casts are required.
+     *
+     * @param  array<int, array<string, mixed>>  $records    Records to insert
+     * @param  int  $chunkSize  Rows per INSERT statement (default 500)
+     */
+    public function insertMany(array $records, int $chunkSize = 500): bool
+    {
+        foreach (array_chunk($records, $chunkSize) as $chunk) {
+            if (! $this->newQuery()->insert($chunk)) {
+                return false;
+            }
         }
 
-        return $models;
+        return true;
     }
 
     /**
      * Retrieve all records.
      *
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
-    public function retrieve(array $columns = ['*'], array $options = []): Collection
+    public function retrieve(array $columns = ['*'], array|QueryOptions $options = []): Collection
     {
-        return $this->getRetrieveQuery($columns, $options)->get();
+        return $this->getRetrieveQuery($columns, $this->resolveOptions($options))->get();
     }
 
     /**
@@ -96,13 +128,35 @@ abstract class BaseRepository implements RepositoryContract
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
-    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
+    public function retrieveBy(array $conditions, array $columns = ['*'], array|QueryOptions $options = []): Collection
     {
-        return $this->getRetrieveQuery($columns, $options)
+        return $this->getRetrieveQuery($columns, $this->resolveOptions($options))
             ->where($conditions)
             ->get();
+    }
+
+    /**
+     * Retrieve records matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together:
+     * retrieveByOr([['a' => 1], ['b' => 2]]) → WHERE (a = 1) OR (b = 2)
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
+     * @return Collection<int, Model>
+     */
+    public function retrieveByOr(array $conditionGroups, array $columns = ['*'], array|QueryOptions $options = []): Collection
+    {
+        $query = $this->getRetrieveQuery($columns, $this->resolveOptions($options));
+
+        foreach ($conditionGroups as $index => $conditions) {
+            $index === 0 ? $query->where($conditions) : $query->orWhere($conditions);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -110,17 +164,17 @@ abstract class BaseRepository implements RepositoryContract
      * Uses 2 queries: COUNT(*) + data fetch.
      *
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
     public function retrievePaginate(
         array $columns = ['*'],
-        array $options = [],
+        array|QueryOptions $options = [],
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
         $perPage ??= $this->model->getPerPage();
 
-        return $this->getRetrieveQueryForPagination($columns, $options)
+        return $this->getRetrieveQueryForPagination($columns, $this->resolveOptions($options))
             ->paginate(perPage: $perPage, page: $page);
     }
 
@@ -129,18 +183,18 @@ abstract class BaseRepository implements RepositoryContract
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
     public function retrieveByPaginate(
         array $conditions,
         array $columns = ['*'],
-        array $options = [],
+        array|QueryOptions $options = [],
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
         $perPage ??= $this->model->getPerPage();
 
-        return $this->getRetrieveQueryForPagination($columns, $options)
+        return $this->getRetrieveQueryForPagination($columns, $this->resolveOptions($options))
             ->where($conditions)
             ->paginate(perPage: $perPage, page: $page);
     }
@@ -150,17 +204,17 @@ abstract class BaseRepository implements RepositoryContract
      * Uses 1 query only - faster than retrievePaginate().
      *
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
     public function retrieveSimplePaginate(
         array $columns = ['*'],
-        array $options = [],
+        array|QueryOptions $options = [],
         ?int $perPage = null,
         ?int $page = null
     ): Paginator {
         $perPage ??= $this->model->getPerPage();
 
-        return $this->getRetrieveQueryForPagination($columns, $options)
+        return $this->getRetrieveQueryForPagination($columns, $this->resolveOptions($options))
             ->simplePaginate(perPage: $perPage, page: $page);
     }
 
@@ -172,18 +226,32 @@ abstract class BaseRepository implements RepositoryContract
      * NOTE: Requires consistent ORDER BY column (usually 'id' or 'created_at').
      *
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options
+     * @param  array<string, mixed>|QueryOptions  $options  Query options
      */
     public function retrieveCursorPaginate(
         array $columns = ['*'],
-        array $options = [],
+        array|QueryOptions $options = [],
         ?int $perPage = null,
         ?string $cursor = null
     ): CursorPaginator {
         $perPage ??= $this->model->getPerPage();
 
-        return $this->getRetrieveQueryForPagination($columns, $options)
+        return $this->getRetrieveQueryForPagination($columns, $this->resolveOptions($options))
             ->cursorPaginate(perPage: $perPage, cursor: $cursor);
+    }
+
+    /**
+     * Resolve $options to a plain array.
+     *
+     * Accepts either a legacy array or a QueryOptions DTO, converting the latter
+     * to its array representation for internal query building.
+     *
+     * @param  array<string, mixed>|QueryOptions  $options
+     * @return array<string, mixed>
+     */
+    private function resolveOptions(array|QueryOptions $options): array
+    {
+        return $options instanceof QueryOptions ? $options->toArray() : $options;
     }
 
     /**
@@ -240,6 +308,44 @@ abstract class BaseRepository implements RepositoryContract
         return $this->newQuery()
             ->select($this->prefixColumns($columns))
             ->findOrFail($id);
+    }
+
+    /**
+     * Find multiple records by their primary keys.
+     *
+     * Returns only found records — missing IDs are silently omitted.
+     * Result order follows the database's natural ordering, not the input array order.
+     *
+     * @param  array<int, int|string>  $ids
+     * @param  array<int, string>  $columns
+     * @return Collection<int, Model>
+     */
+    public function findByIds(array $ids, array $columns = ['*']): Collection
+    {
+        return $this->newQuery()
+            ->select($this->prefixColumns($columns))
+            ->whereIn($this->model->getKeyName(), $ids)
+            ->get();
+    }
+
+    /**
+     * Find a single record matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together:
+     * findByOr([['a' => 1], ['b' => 2]]) → WHERE (a = 1) OR (b = 2)
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     */
+    public function findByOr(array $conditionGroups, array $columns = ['*']): ?Model
+    {
+        $query = $this->newQuery()->select($this->prefixColumns($columns));
+
+        foreach ($conditionGroups as $index => $conditions) {
+            $index === 0 ? $query->where($conditions) : $query->orWhere($conditions);
+        }
+
+        return $query->first();
     }
 
     /**
@@ -533,6 +639,44 @@ abstract class BaseRepository implements RepositoryContract
         }
 
         return $deleted;
+    }
+
+    /**
+     * Restore soft-deleted records matching conditions.
+     *
+     * Requires the model to use the SoftDeletes trait. Searches only within
+     * trashed records and restores matching ones.
+     *
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @return int Number of restored rows
+     */
+    public function restore(array $conditions): int
+    {
+        return $this->newQuery()
+            ->withTrashed()
+            ->where($conditions)
+            ->restore();
+    }
+
+    /**
+     * Restore a single soft-deleted record by its primary key.
+     *
+     * Requires the model to use the SoftDeletes trait.
+     *
+     * @param  int|string  $id  The primary key value
+     * @return bool True if restored, false if not found in trash
+     */
+    public function restoreById(int|string $id): bool
+    {
+        $model = $this->newQuery()
+            ->withTrashed()
+            ->find($id);
+
+        if ($model === null) {
+            return false;
+        }
+
+        return (bool) $model->restore();
     }
 
     /**

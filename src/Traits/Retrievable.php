@@ -17,6 +17,16 @@ use InvalidArgumentException;
 trait Retrievable
 {
     /**
+     * DDL/DML keywords that must not appear in raw ORDER BY or SELECT expressions.
+     *
+     * These keywords are blocked as a defence-in-depth measure: Eloquent
+     * parameterises bound values but raw expressions are interpolated as-is.
+     * Word boundaries (\b) prevent false positives on column names that happen
+     * to contain a keyword substring (e.g. "created_at" contains "create").
+     */
+    private const DANGEROUS_SQL_PATTERN = '/\b(delete|update|insert|drop|alter|truncate|create|union|exec|execute|grant|revoke)\b/i';
+
+    /**
      * Build the retrieve query with all options applied.
      *
      * @param  array<int, string>  $columns  Columns to select
@@ -208,7 +218,7 @@ trait Retrievable
      */
     protected function validateRawExpression(string $expression): string
     {
-        if (preg_match('/\b(delete|update|insert|drop|alter|truncate|create|union|exec|execute|grant|revoke)\b/i', $expression)) {
+        if (preg_match(self::DANGEROUS_SQL_PATTERN, $expression)) {
             throw new InvalidArgumentException('Potentially dangerous raw expression');
         }
 

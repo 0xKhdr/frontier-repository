@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 describe('RepositoryCache', function (): void {
+    // Allow Log::warning() to be called without failing on tests that exercise
+    // write operations against non-tag drivers (clearCache side-effect).
+    beforeEach(fn () => Log::spy());
+
     it('caches retrieve calls', function (): void {
         // Setup Config
         Config::set('repository-cache.enabled', true);

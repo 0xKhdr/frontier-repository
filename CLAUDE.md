@@ -234,4 +234,3 @@ Publish: `php artisan vendor:publish --tag=repository-config`
 | `frontier/action` | `BaseAction` extends `FrontierBaseAction` |
 | `tucker-eric/eloquentfilter` | Optional — enables `filters` option in `retrieve()` (model needs `Filterable` trait) |
 | `frontier/module` | Optional — enables `--module` flag on generator commands |
-

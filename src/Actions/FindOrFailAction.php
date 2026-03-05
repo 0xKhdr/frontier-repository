@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Frontier\Repositories\Actions;
 
 use Frontier\Repositories\BaseAction;
@@ -9,6 +11,6 @@ class FindOrFailAction extends BaseAction
 {
     public function handle(array $conditions, array $columns = ['*']): Model
     {
-        return $this->repository->findOrFail($conditions, $columns);
+        return $this->repository->findByOrFail($conditions, $columns);
     }
 }

@@ -16,71 +16,30 @@ use Illuminate\Support\Collection;
  *
  * Defines methods for retrieving records from the database.
  *
- * ## Method Categories
+ * ## Naming Convention
  *
- * ### Single Record (by conditions)
- * - `find()` / `findOrFail()` - Find first matching record
- *
- * ### Single Record (by primary key)
- * - `findById()` / `findByIdOrFail()` - Find by primary key
- *
- * ### Multiple Records
- * - `retrieve()` - Get all records
- * - `retrieveBy()` - Get records by conditions
- *
- * ### Pagination
- * - `retrievePaginate()` - Full pagination with total count (2 queries)
- * - `retrieveSimplePaginate()` - Simple next/prev pagination (1 query)
- * - `retrieveCursorPaginate()` - Cursor-based for large datasets (O(1))
- *
- * ### Aggregation
- * - `count()` - Count matching records
- * - `exists()` - Check if records exist
+ * | Pattern | Meaning |
+ * |---------|---------|
+ * | `find($id)` | Single record by primary key |
+ * | `findBy($conditions)` | Single record by arbitrary conditions |
+ * | `findMany($ids)` | Multiple records by primary keys |
+ * | `findByOr($groups)` | Single record, OR-chained condition groups |
+ * | `get(...)` | Eager collection of all records |
+ * | `getBy(...)` | Collection filtered by conditions |
+ * | `getByOr(...)` | Collection filtered with OR logic |
+ * | `paginate(...)` | LengthAwarePaginator (2 queries — total + data) |
+ * | `paginateBy(...)` | LengthAwarePaginator filtered by conditions |
+ * | `simplePaginate(...)` | Simple next/prev paginator (1 query) |
+ * | `cursorPaginate(...)` | Cursor-based paginator (O(1), large datasets) |
+ * | `*OrFail` suffix | Same as base method but throws ModelNotFoundException |
  */
 interface Readable
 {
     /*
     |--------------------------------------------------------------------------
-    | Single Record Operations
+    | Single Record — by Primary Key
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * Find a single record by conditions.
-     *
-     * Returns the first record matching all conditions, or null if not found.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions (AND logic)
-     * @param  array<int, string>  $columns  Columns to select
-     * @return Model|null The found model or null
-     *
-     * @example
-     * ```php
-     * $user = $repository->find(['email' => 'john@example.com']);
-     * $user = $repository->find(['status' => 'active', 'role' => 'admin']);
-     * ```
-     */
-    public function find(array $conditions, array $columns = ['*']): ?Model;
-
-    /**
-     * Find a single record by conditions or throw exception.
-     *
-     * Same as find() but throws ModelNotFoundException if not found.
-     * Useful in controllers where a 404 response is expected.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<int, string>  $columns  Columns to select
-     * @return Model The found model
-     *
-     * @throws ModelNotFoundException When no record matches the conditions
-     *
-     * @example
-     * ```php
-     * $user = $repository->findOrFail(['email' => 'john@example.com']);
-     * // Throws ModelNotFoundException if not found
-     * ```
-     */
-    public function findOrFail(array $conditions, array $columns = ['*']): Model;
 
     /**
      * Find a record by its primary key.
@@ -93,108 +52,206 @@ interface Readable
      *
      * @example
      * ```php
-     * $user = $repository->findById(1);
-     * $user = $repository->findById('uuid-string', ['id', 'name', 'email']);
+     * $user = $repository->find(1);
+     * $user = $repository->find('uuid-string', ['id', 'name', 'email']);
      * ```
      */
-    public function findById(int|string $id, array $columns = ['*']): ?Model;
+    public function find(int|string $id, array $columns = ['*']): ?Model;
 
     /**
      * Find a record by its primary key or throw exception.
      *
-     * Same as findById() but throws ModelNotFoundException if not found.
-     *
      * @param  int|string  $id  The primary key value
      * @param  array<int, string>  $columns  Columns to select
-     * @return Model The found model
      *
      * @throws ModelNotFoundException When no record matches the ID
      *
      * @example
      * ```php
-     * $user = $repository->findByIdOrFail(1);
-     * // Throws ModelNotFoundException if not found
+     * $user = $repository->findOrFail(1);
+     * // Throws ModelNotFoundException if ID 1 doesn't exist
      * ```
      */
-    public function findByIdOrFail(int|string $id, array $columns = ['*']): Model;
+    public function findOrFail(int|string $id, array $columns = ['*']): Model;
+
+    /**
+     * Find multiple records by their primary keys.
+     *
+     * Returns only found records — missing IDs are silently omitted.
+     * Use findManyOrFail() if you need strict existence checking.
+     * Result order follows the database's natural ordering, not the input array order.
+     *
+     * @param  array<int, int|string>  $ids  Primary key values to look up
+     * @param  array<int, string>  $columns  Columns to select
+     * @return Collection<int, Model>
+     *
+     * @example
+     * ```php
+     * $users = $repository->findMany([1, 2, 3]);
+     * ```
+     */
+    public function findMany(array $ids, array $columns = ['*']): Collection;
+
+    /**
+     * Find multiple records by their primary keys or throw if any are missing.
+     *
+     * @param  array<int, int|string>  $ids  Primary key values to look up
+     * @param  array<int, string>  $columns  Columns to select
+     * @return Collection<int, Model>
+     *
+     * @throws ModelNotFoundException When one or more IDs are not found
+     *
+     * @example
+     * ```php
+     * $users = $repository->findManyOrFail([1, 2, 3]);
+     * // Throws ModelNotFoundException if any of the IDs are missing
+     * ```
+     */
+    public function findManyOrFail(array $ids, array $columns = ['*']): Collection;
 
     /*
     |--------------------------------------------------------------------------
-    | Multiple Records Operations
+    | Single Record — by Conditions
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Retrieve all records.
+     * Find a single record by conditions.
      *
-     * Returns all records from the table. Use with caution on large tables.
-     * Consider using pagination methods for large datasets.
+     * Returns the first record matching all conditions (AND logic), or null.
      *
+     * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
-     * @param  array<string, mixed>  $options  Query options (sorting, relations, etc.)
-     * @return Collection<int, Model> Collection of models (may be empty)
+     * @return Model|null
      *
      * @example
      * ```php
-     * $users = $repository->retrieve();
-     * $users = $repository->retrieve(['id', 'name'], ['sort' => 'name']);
+     * $user = $repository->findBy(['email' => 'john@example.com']);
+     * $user = $repository->findBy(['status' => 'active', 'role' => 'admin']);
      * ```
      */
-    public function retrieve(array $columns = ['*'], array $options = []): Collection;
+    public function findBy(array $conditions, array $columns = ['*']): ?Model;
 
     /**
-     * Retrieve records matching conditions.
+     * Find a single record by conditions or throw exception.
      *
-     * Returns all records matching the given conditions.
+     * @param  array<string, mixed>  $conditions  Where conditions
+     * @param  array<int, string>  $columns  Columns to select
+     *
+     * @throws ModelNotFoundException When no record matches the conditions
+     *
+     * @example
+     * ```php
+     * $user = $repository->findByOrFail(['email' => 'john@example.com']);
+     * ```
+     */
+    public function findByOrFail(array $conditions, array $columns = ['*']): Model;
+
+    /**
+     * Find a single record matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together:
+     * findByOr([['a' => 1], ['b' => 2]]) → WHERE (a = 1) OR (b = 2)
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     *
+     * @example
+     * ```php
+     * // WHERE (email = 'a@b.com') OR (username = 'johndoe')
+     * $user = $repository->findByOr([
+     *     ['email' => 'a@b.com'],
+     *     ['username' => 'johndoe'],
+     * ]);
+     * ```
+     */
+    public function findByOr(array $conditionGroups, array $columns = ['*']): ?Model;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Collections
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Get all records.
+     *
+     * Returns all records from the table. Use with caution on large tables —
+     * consider using pagination methods for large datasets.
+     *
+     * @param  array<int, string>  $columns  Columns to select
+     * @param  array<string, mixed>  $options  Query options (sorting, relations, etc.)
+     * @return Collection<int, Model>
+     *
+     * @example
+     * ```php
+     * $users = $repository->get();
+     * $users = $repository->get(['id', 'name'], ['sort' => 'name']);
+     * ```
+     */
+    public function get(array $columns = ['*'], array $options = []): Collection;
+
+    /**
+     * Get records matching conditions.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
-     * @return Collection<int, Model> Collection of matching models (may be empty)
+     * @return Collection<int, Model>
      *
      * @example
      * ```php
-     * $activeUsers = $repository->retrieveBy(['status' => 'active']);
-     * $admins = $repository->retrieveBy(
-     *     ['role' => 'admin'],
-     *     ['id', 'name'],
-     *     ['sort' => '-created_at']
-     * );
+     * $activeUsers = $repository->getBy(['status' => 'active']);
+     * $admins = $repository->getBy(['role' => 'admin'], ['id', 'name'], ['sort' => 'name']);
      * ```
      */
-    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection;
+    public function getBy(array $conditions, array $columns = ['*'], array $options = []): Collection;
+
+    /**
+     * Get records matching any of the provided condition groups (OR logic).
+     *
+     * Each condition group is AND-chained internally; groups are OR-chained together.
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     * @return Collection<int, Model>
+     *
+     * @example
+     * ```php
+     * // WHERE (status = 'active') OR (role = 'admin')
+     * $users = $repository->getByOr([
+     *     ['status' => 'active'],
+     *     ['role' => 'admin'],
+     * ]);
+     * ```
+     */
+    public function getByOr(array $conditionGroups, array $columns = ['*'], array $options = []): Collection;
 
     /*
     |--------------------------------------------------------------------------
-    | Pagination Operations
+    | Pagination
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Retrieve paginated results with total count.
+     * Paginate with total count (for UI with page numbers).
      *
-     * Returns a paginator with total count, suitable for UIs with page numbers.
      * Uses 2 queries: COUNT(*) + data fetch.
-     *
-     * Performance: O(n) where n = total records (for counting)
+     * Performance: O(n) where n = total records (for counting).
      *
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
      * @param  int|null  $perPage  Items per page (defaults to model's perPage)
      * @param  int|null  $page  Page number
-     * @return LengthAwarePaginator Paginator with total count
      *
      * @example
      * ```php
-     * $users = $repository->retrievePaginate(
-     *     columns: ['id', 'name'],
-     *     perPage: 15,
-     *     page: 2
-     * );
+     * $users = $repository->paginate(columns: ['id', 'name'], perPage: 15, page: 2);
      * // $users->total(), $users->lastPage(), etc.
      * ```
      */
-    public function retrievePaginate(
+    public function paginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
@@ -202,18 +259,15 @@ interface Readable
     ): LengthAwarePaginator;
 
     /**
-     * Retrieve paginated results matching conditions.
-     *
-     * Similar to retrievePaginate() but filters by conditions first.
+     * Paginate records matching conditions with total count.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
      * @param  int|null  $perPage  Items per page
      * @param  int|null  $page  Page number
-     * @return LengthAwarePaginator Paginator with total count
      */
-    public function retrieveByPaginate(
+    public function paginateBy(
         array $conditions,
         array $columns = ['*'],
         array $options = [],
@@ -222,26 +276,23 @@ interface Readable
     ): LengthAwarePaginator;
 
     /**
-     * Simple pagination without total count.
+     * Simple pagination without total count (for "Next/Prev" UI).
      *
-     * Returns a simple paginator with only "Next/Previous" navigation.
-     * Uses 1 query only - faster than retrievePaginate().
-     *
-     * Performance: O(1) - constant time regardless of total records
+     * Uses 1 query only — faster than paginate().
+     * Performance: O(1) — constant time regardless of total records.
      *
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
      * @param  int|null  $perPage  Items per page
      * @param  int|null  $page  Page number
-     * @return Paginator Simple paginator
      *
      * @example
      * ```php
-     * $users = $repository->retrieveSimplePaginate(perPage: 15);
+     * $users = $repository->simplePaginate(perPage: 15);
      * // $users->hasMorePages(), but NO $users->total()
      * ```
      */
-    public function retrieveSimplePaginate(
+    public function simplePaginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
@@ -249,28 +300,25 @@ interface Readable
     ): Paginator;
 
     /**
-     * Cursor-based pagination for large datasets.
+     * Cursor-based pagination for large datasets (100k+ rows).
      *
-     * Uses cursor (keyset) pagination for O(1) performance.
-     * Ideal for infinite scroll, APIs, and datasets with 100k+ rows.
+     * O(1) performance — no offset scanning, constant speed for any position.
+     * Best for: infinite scroll, API endpoints, mobile apps.
      *
-     * Performance: O(1) - constant time regardless of "page" position
-     * Note: Requires consistent ORDER BY column (usually 'id' or 'created_at')
+     * NOTE: Requires a consistent ORDER BY column (usually 'id' or 'created_at').
      *
      * @param  array<int, string>  $columns  Columns to select
      * @param  array<string, mixed>  $options  Query options
      * @param  int|null  $perPage  Items per page
      * @param  string|null  $cursor  Encoded cursor from previous page
-     * @return CursorPaginator Cursor paginator
      *
      * @example
      * ```php
-     * $users = $repository->retrieveCursorPaginate(perPage: 50);
+     * $users = $repository->cursorPaginate(perPage: 50);
      * $nextCursor = $users->nextCursor()?->encode();
-     * // Pass cursor to next request for seamless scrolling
      * ```
      */
-    public function retrieveCursorPaginate(
+    public function cursorPaginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
@@ -279,7 +327,7 @@ interface Readable
 
     /*
     |--------------------------------------------------------------------------
-    | Aggregation Operations
+    | Aggregation
     |--------------------------------------------------------------------------
     */
 
@@ -287,7 +335,6 @@ interface Readable
      * Count records matching conditions.
      *
      * @param  array<string, mixed>  $conditions  Where conditions (empty = count all)
-     * @return int Number of matching records
      *
      * @example
      * ```php
@@ -303,7 +350,6 @@ interface Readable
      * More efficient than count() > 0 as it stops at first match.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
-     * @return bool True if at least one record exists
      *
      * @example
      * ```php

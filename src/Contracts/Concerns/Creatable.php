@@ -165,4 +165,27 @@ interface Creatable
      * ```
      */
     public function insertGetId(array $values): int;
+
+    /**
+     * Insert multiple records using chunked bulk INSERT statements.
+     *
+     * Bypasses Eloquent model instantiation entirely — no model events (creating/created),
+     * casts, mutators, or timestamps are applied. Use this for high-volume data imports
+     * where performance matters more than lifecycle hooks.
+     *
+     * Prefer createMany() when model events and casts are required.
+     *
+     * @param  array<int, array<string, mixed>>  $records    Records to insert
+     * @param  int  $chunkSize  Rows per INSERT statement (default 500)
+     * @return bool True if all chunks inserted successfully
+     *
+     * @example
+     * ```php
+     * $repository->insertMany(
+     *     array_map(fn($row) => [...$row, 'created_at' => now()], $csvRows),
+     *     chunkSize: 1000,
+     * );
+     * ```
+     */
+    public function insertMany(array $records, int $chunkSize = 500): bool;
 }

@@ -82,13 +82,13 @@ interface Updatable
     /**
      * Update records matching conditions using Eloquent models.
      *
-     * This method retrieves all matching records and updates each using
-     * Eloquent's model-level update, ensuring that:
+     * Retrieves all matching records and updates each individually using
+     * Eloquent's model-level update, ensuring that for each record:
      * - Attribute casting is applied
      * - Mutators are triggered
-     * - Model events (updating/updated) are fired for each record
+     * - Model events (updating/updated) are fired
      *
-     * Performance: Slower than update() due to N+1 queries (1 SELECT + N UPDATEs)
+     * Performance: N+1 queries (1 SELECT + 1 UPDATE per record).
      * Use update() for bulk operations where lifecycle isn't needed.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
@@ -97,20 +97,19 @@ interface Updatable
      *
      * @example
      * ```php
-     * $updated = $repository->updateBy(
+     * $updated = $repository->updateEach(
      *     ['status' => 'pending'],
      *     ['status' => 'processed']
      * );
      * // Each model's "updated" event was fired
      * ```
      */
-    public function updateBy(array $conditions, array $values): Collection;
+    public function updateEach(array $conditions, array $values): Collection;
 
     /**
      * Update records matching conditions using Eloquent models or throw if none found.
      *
-     * Same as updateBy() but throws ModelNotFoundException if no records match.
-     * Uses Eloquent models, so lifecycle events are triggered.
+     * Same as updateEach() but throws ModelNotFoundException if no records match.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<string, mixed>  $values  Values to update
@@ -120,14 +119,14 @@ interface Updatable
      *
      * @example
      * ```php
-     * $updated = $repository->updateByOrFail(
+     * $updated = $repository->updateEachOrFail(
      *     ['user_id' => 123],
      *     ['status' => 'inactive']
      * );
      * // Throws ModelNotFoundException if no records match
      * ```
      */
-    public function updateByOrFail(array $conditions, array $values): Collection;
+    public function updateEachOrFail(array $conditions, array $values): Collection;
 
     /**
      * Update a record by its primary key using Eloquent model.

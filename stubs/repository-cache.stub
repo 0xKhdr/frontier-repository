@@ -6,6 +6,29 @@ namespace $NAMESPACE$;
 
 use Frontier\Repositories\BaseRepositoryCache;
 
+/**
+ * Caching decorator for the associated repository.
+ *
+ * Transparently wraps an Eloquent repository and caches all read operations.
+ * Write operations automatically invalidate the cache via clearCache().
+ *
+ * Usage in AppServiceProvider::register():
+ *
+ *   $this->app->bind($CLASS_NAME_BASE$Interface::class, fn ($app) =>
+ *       new $CLASS_NAME$(
+ *           repository: $app->make($CLASS_NAME_BASE$::class),
+ *           ttl:        3600,   // optional: override default TTL
+ *       )
+ *   );
+ *
+ * Per-call TTL override:
+ *
+ *   $repo->cacheFor(30)->findById($id);   // cached for 30 seconds only
+ *
+ * Skip cache for one call:
+ *
+ *   $repo->withoutCache()->retrieve();    // bypasses cache, hits database
+ */
 class $CLASS_NAME$ extends BaseRepositoryCache
 {
 }

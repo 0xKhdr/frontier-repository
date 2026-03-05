@@ -6,7 +6,25 @@ namespace $NAMESPACE$;
 
 use Frontier\Repositories\Contracts\Repository;
 
+/**
+ * Repository contract for the associated model.
+ *
+ * Extends the full Repository interface which includes all standard CRUD,
+ * pagination, and aggregation operations.
+ *
+ * For read-only consumers, type-hint against a narrower sub-interface:
+ *
+ *   use Frontier\Repositories\Contracts\Concerns\Readable;
+ *   public function __construct(private Readable $repository) {}
+ *
+ * For mixed read/write, use intersection types:
+ *
+ *   use Frontier\Repositories\Contracts\Concerns\{Readable, Updatable};
+ *   public function __construct(private Readable&Updatable $repository) {}
+ *
+ * Add model-specific method signatures below:
+ */
 interface $CLASS_NAME$ extends Repository
 {
-    //
+    // public function findByEmail(string $email): ?\Illuminate\Database\Eloquent\Model;
 }

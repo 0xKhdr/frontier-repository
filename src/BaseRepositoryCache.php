@@ -137,8 +137,8 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      *
      * Resets automatically after the next cached() call.
      *
-     *   $repo->cacheFor(30)->findById($id);   // cached for 30 seconds
-     *   $repo->findById($id);                  // back to default TTL
+     *   $repo->cacheFor(30)->find($id);   // cached for 30 seconds
+     *   $repo->find($id);                  // back to default TTL
      */
     public function cacheFor(int $seconds): static
     {
@@ -148,69 +148,86 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Retrieve all records (cached).
+     * Get all records (cached).
      *
      * @param  array<int, string>  $columns
      * @param  array<string, mixed>  $options
      */
-    public function retrieve(array $columns = ['*'], array $options = []): Collection
+    public function get(array $columns = ['*'], array $options = []): Collection
     {
-        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn () => $this->repository->retrieve($columns, $options));
+        return $this->cached('get', ['columns' => $columns, 'options' => $options], fn () => $this->repository->get($columns, $options));
     }
 
     /**
-     * Retrieve records by conditions.
-     */
-    public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
-    {
-        return $this->cached('retrieveBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options], fn () => $this->repository->retrieveBy($conditions, $columns, $options));
-    }
-
-    /**
-     * Retrieve paginated records with total count (cached).
-     *
-     * @param  array<int, string>  $columns
-     * @param  array<string, mixed>  $options
-     */
-    public function retrievePaginate(
-        array $columns = ['*'],
-        array $options = [],
-        ?int $perPage = null,
-        ?int $page = null
-    ): LengthAwarePaginator {
-        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
-    }
-
-    /**
-     * Retrieve paginated records by conditions (cached).
+     * Get records by conditions (cached).
      *
      * @param  array<string, mixed>  $conditions
      * @param  array<int, string>  $columns
      * @param  array<string, mixed>  $options
      */
-    public function retrieveByPaginate(
+    public function getBy(array $conditions, array $columns = ['*'], array $options = []): Collection
+    {
+        return $this->cached('getBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options], fn () => $this->repository->getBy($conditions, $columns, $options));
+    }
+
+    /**
+     * Get records matching any condition group — OR logic (cached).
+     *
+     * @param  array<int, array<string, mixed>>  $conditionGroups
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     * @return Collection<int, Model>
+     */
+    public function getByOr(array $conditionGroups, array $columns = ['*'], array $options = []): Collection
+    {
+        return $this->cached('getByOr', ['conditionGroups' => $conditionGroups, 'columns' => $columns, 'options' => $options], fn () => $this->repository->getByOr($conditionGroups, $columns, $options));
+    }
+
+    /**
+     * Paginate with total count (cached).
+     *
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     */
+    public function paginate(
+        array $columns = ['*'],
+        array $options = [],
+        ?int $perPage = null,
+        ?int $page = null
+    ): LengthAwarePaginator {
+        return $this->cached('paginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->paginate($columns, $options, $perPage, $page));
+    }
+
+    /**
+     * Paginate records by conditions with total count (cached).
+     *
+     * @param  array<string, mixed>  $conditions
+     * @param  array<int, string>  $columns
+     * @param  array<string, mixed>  $options
+     */
+    public function paginateBy(
         array $conditions,
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->cached('retrieveByPaginate', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrieveByPaginate($conditions, $columns, $options, $perPage, $page));
+        return $this->cached('paginateBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->paginateBy($conditions, $columns, $options, $perPage, $page));
     }
 
     /**
-     * Simple paginate without total count (cached).
+     * Simple pagination without total count (cached).
      *
      * @param  array<int, string>  $columns
      * @param  array<string, mixed>  $options
      */
-    public function retrieveSimplePaginate(
+    public function simplePaginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
         ?int $page = null
     ): Paginator {
-        return $this->cached('retrieveSimplePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrieveSimplePaginate($columns, $options, $perPage, $page));
+        return $this->cached('simplePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->simplePaginate($columns, $options, $perPage, $page));
     }
 
     /**
@@ -219,59 +236,37 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      * @param  array<int, string>  $columns
      * @param  array<string, mixed>  $options
      */
-    public function retrieveCursorPaginate(
+    public function cursorPaginate(
         array $columns = ['*'],
         array $options = [],
         ?int $perPage = null,
         ?string $cursor = null
     ): CursorPaginator {
-        return $this->cached('retrieveCursorPaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'cursor' => $cursor], fn () => $this->repository->retrieveCursorPaginate($columns, $options, $perPage, $cursor));
-    }
-
-    /**
-     * Find a single record (cached).
-     *
-     * @param  array<string, mixed>  $conditions
-     * @param  array<int, string>  $columns
-     */
-    public function find(array $conditions, array $columns = ['*']): ?Model
-    {
-        return $this->cached('find', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->find($conditions, $columns));
-    }
-
-    /**
-     * Find a record or throw exception (cached).
-     *
-     * @param  array<string, mixed>  $conditions
-     * @param  array<int, string>  $columns
-     */
-    public function findOrFail(array $conditions, array $columns = ['*']): Model
-    {
-        return $this->cached('findOrFail', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->findOrFail($conditions, $columns));
+        return $this->cached('cursorPaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'cursor' => $cursor], fn () => $this->repository->cursorPaginate($columns, $options, $perPage, $cursor));
     }
 
     /**
      * Find a record by its primary key (cached).
      *
-     * @param  int|string  $id  The primary key value
-     * @param  array<int, string>  $columns  Columns to select
+     * @param  int|string  $id
+     * @param  array<int, string>  $columns
      */
-    public function findById(int|string $id, array $columns = ['*']): ?Model
+    public function find(int|string $id, array $columns = ['*']): ?Model
     {
-        return $this->cached('findById', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findById($id, $columns));
+        return $this->cached('find', ['id' => $id, 'columns' => $columns], fn () => $this->repository->find($id, $columns));
     }
 
     /**
      * Find a record by its primary key or throw exception (cached).
      *
-     * @param  int|string  $id  The primary key value
-     * @param  array<int, string>  $columns  Columns to select
+     * @param  int|string  $id
+     * @param  array<int, string>  $columns
      *
      * @throws ModelNotFoundException
      */
-    public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
+    public function findOrFail(int|string $id, array $columns = ['*']): Model
     {
-        return $this->cached('findByIdOrFail', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findByIdOrFail($id, $columns));
+        return $this->cached('findOrFail', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findOrFail($id, $columns));
     }
 
     /**
@@ -281,13 +276,51 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      * @param  array<int, string>  $columns
      * @return Collection<int, Model>
      */
-    public function findByIds(array $ids, array $columns = ['*']): Collection
+    public function findMany(array $ids, array $columns = ['*']): Collection
     {
-        return $this->cached('findByIds', ['ids' => $ids, 'columns' => $columns], fn () => $this->repository->findByIds($ids, $columns));
+        return $this->cached('findMany', ['ids' => $ids, 'columns' => $columns], fn () => $this->repository->findMany($ids, $columns));
     }
 
     /**
-     * Find a single record matching any of the provided condition groups (OR logic) (cached).
+     * Find multiple records by primary keys or throw if any are missing (cached).
+     *
+     * @param  array<int, int|string>  $ids
+     * @param  array<int, string>  $columns
+     * @return Collection<int, Model>
+     *
+     * @throws ModelNotFoundException
+     */
+    public function findManyOrFail(array $ids, array $columns = ['*']): Collection
+    {
+        return $this->cached('findManyOrFail', ['ids' => $ids, 'columns' => $columns], fn () => $this->repository->findManyOrFail($ids, $columns));
+    }
+
+    /**
+     * Find a single record by conditions (cached).
+     *
+     * @param  array<string, mixed>  $conditions
+     * @param  array<int, string>  $columns
+     */
+    public function findBy(array $conditions, array $columns = ['*']): ?Model
+    {
+        return $this->cached('findBy', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->findBy($conditions, $columns));
+    }
+
+    /**
+     * Find a record by conditions or throw exception (cached).
+     *
+     * @param  array<string, mixed>  $conditions
+     * @param  array<int, string>  $columns
+     *
+     * @throws ModelNotFoundException
+     */
+    public function findByOrFail(array $conditions, array $columns = ['*']): Model
+    {
+        return $this->cached('findByOrFail', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->findByOrFail($conditions, $columns));
+    }
+
+    /**
+     * Find a single record matching any condition group — OR logic (cached).
      *
      * @param  array<int, array<string, mixed>>  $conditionGroups
      * @param  array<int, string>  $columns
@@ -295,19 +328,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     public function findByOr(array $conditionGroups, array $columns = ['*']): ?Model
     {
         return $this->cached('findByOr', ['conditionGroups' => $conditionGroups, 'columns' => $columns], fn () => $this->repository->findByOr($conditionGroups, $columns));
-    }
-
-    /**
-     * Retrieve records matching any of the provided condition groups (OR logic) (cached).
-     *
-     * @param  array<int, array<string, mixed>>  $conditionGroups
-     * @param  array<int, string>  $columns
-     * @param  array<string, mixed>  $options
-     * @return Collection<int, Model>
-     */
-    public function retrieveByOr(array $conditionGroups, array $columns = ['*'], array $options = []): Collection
-    {
-        return $this->cached('retrieveByOr', ['conditionGroups' => $conditionGroups, 'columns' => $columns, 'options' => $options], fn () => $this->repository->retrieveByOr($conditionGroups, $columns, $options));
     }
 
     /**
@@ -362,7 +382,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Update records matching conditions or throw if none found (invalidates cache).
+     * Update records or throw if none found (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions
      * @param  array<string, mixed>  $values
@@ -375,44 +395,37 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Update records matching conditions using Eloquent models (invalidates cache).
+     * Update records using Eloquent models (invalidates cache).
      *
-     * This method retrieves all matching records and updates each using
-     * Eloquent's model-level update, ensuring that casts, mutators, accessors,
-     * and model events (updating/updated) are triggered for each record.
-     *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<string, mixed>  $values  Values to update
-     * @return Collection<int, Model> Collection of updated models
+     * @param  array<string, mixed>  $conditions
+     * @param  array<string, mixed>  $values
+     * @return Collection<int, Model>
      */
-    public function updateBy(array $conditions, array $values): Collection
+    public function updateEach(array $conditions, array $values): Collection
     {
-        return tap($this->repository->updateBy($conditions, $values), fn (): bool => $this->clearCache());
+        return tap($this->repository->updateEach($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
-     * Update records matching conditions using Eloquent models or throw if none found (invalidates cache).
+     * Update records using Eloquent models or throw if none found (invalidates cache).
      *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @param  array<string, mixed>  $values  Values to update
-     * @return Collection<int, Model> Collection of updated models
+     * @param  array<string, mixed>  $conditions
+     * @param  array<string, mixed>  $values
+     * @return Collection<int, Model>
      *
      * @throws ModelNotFoundException
      */
-    public function updateByOrFail(array $conditions, array $values): Collection
+    public function updateEachOrFail(array $conditions, array $values): Collection
     {
-        return tap($this->repository->updateByOrFail($conditions, $values), fn (): bool => $this->clearCache());
+        return tap($this->repository->updateEachOrFail($conditions, $values), fn (): bool => $this->clearCache());
     }
 
     /**
      * Update a record by its primary key (invalidates cache).
      *
-     * This method uses Eloquent's model-level update, ensuring that casts,
-     * mutators, accessors, and model events (updating/updated) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<string, mixed>  $values  Values to update
-     * @return Model|null The updated model or null if not found
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $values
+     * @return Model|null
      */
     public function updateById(int|string $id, array $values): ?Model
     {
@@ -422,11 +435,8 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Update a record by its primary key or throw exception (invalidates cache).
      *
-     * This method uses Eloquent's model-level update, ensuring that casts,
-     * mutators, accessors, and model events (updating/updated) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @param  array<string, mixed>  $values  Values to update
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $values
      *
      * @throws ModelNotFoundException
      */
@@ -446,7 +456,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Delete records matching conditions or throw if none found (invalidates cache).
+     * Delete records or throw if none found (invalidates cache).
      *
      * @param  array<string, mixed>  $conditions
      *
@@ -458,37 +468,34 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Delete records matching conditions using Eloquent models (invalidates cache).
+     * Delete records using Eloquent models (invalidates cache).
      *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @return Collection<int, Model> Collection of deleted models
+     * @param  array<string, mixed>  $conditions
+     * @return Collection<int, Model>
      */
-    public function deleteBy(array $conditions): Collection
+    public function deleteEach(array $conditions): Collection
     {
-        return tap($this->repository->deleteBy($conditions), fn (): bool => $this->clearCache());
+        return tap($this->repository->deleteEach($conditions), fn (): bool => $this->clearCache());
     }
 
     /**
-     * Delete records matching conditions using Eloquent models or throw if none found (invalidates cache).
+     * Delete records using Eloquent models or throw if none found (invalidates cache).
      *
-     * @param  array<string, mixed>  $conditions  Where conditions
-     * @return Collection<int, Model> Collection of deleted models
+     * @param  array<string, mixed>  $conditions
+     * @return Collection<int, Model>
      *
      * @throws ModelNotFoundException
      */
-    public function deleteByOrFail(array $conditions): Collection
+    public function deleteEachOrFail(array $conditions): Collection
     {
-        return tap($this->repository->deleteByOrFail($conditions), fn (): bool => $this->clearCache());
+        return tap($this->repository->deleteEachOrFail($conditions), fn (): bool => $this->clearCache());
     }
 
     /**
      * Delete a record by its primary key (invalidates cache).
      *
-     * This method uses Eloquent's model-level delete, ensuring that
-     * model events (deleting/deleted) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
-     * @return bool True if deleted, false if not found
+     * @param  int|string  $id
+     * @return bool
      */
     public function deleteById(int|string $id): bool
     {
@@ -498,10 +505,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Delete a record by its primary key or throw exception (invalidates cache).
      *
-     * This method uses Eloquent's model-level delete, ensuring that
-     * model events (deleting/deleted) are triggered.
-     *
-     * @param  int|string  $id  The primary key value
+     * @param  int|string  $id
      *
      * @throws ModelNotFoundException
      */
@@ -511,25 +515,25 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Delete multiple records (invalidates cache).
+     * Delete multiple records by primary keys (invalidates cache).
      *
      * @param  array<int, int|string>  $ids
      */
-    public function deleteByIds(array $ids): int
+    public function deleteMany(array $ids): int
     {
-        return tap($this->repository->deleteByIds($ids), fn (): bool => $this->clearCache());
+        return tap($this->repository->deleteMany($ids), fn (): bool => $this->clearCache());
     }
 
     /**
-     * Delete multiple records or throw if none found (invalidates cache).
+     * Delete multiple records by primary keys or throw if none found (invalidates cache).
      *
      * @param  array<int, int|string>  $ids
      *
      * @throws ModelNotFoundException
      */
-    public function deleteByIdsOrFail(array $ids): int
+    public function deleteManyOrFail(array $ids): int
     {
-        return tap($this->repository->deleteByIdsOrFail($ids), fn (): bool => $this->clearCache());
+        return tap($this->repository->deleteManyOrFail($ids), fn (): bool => $this->clearCache());
     }
 
     /**
@@ -594,14 +598,20 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Find or create a record (invalidates cache).
+     * Find or create a record (invalidates cache only when a new record is created).
      *
      * @param  array<string, mixed>  $conditions
      * @param  array<string, mixed>  $values
      */
     public function firstOrCreate(array $conditions, array $values = []): Model
     {
-        return tap($this->repository->firstOrCreate($conditions, $values), fn (): bool => $this->clearCache());
+        $model = $this->repository->firstOrCreate($conditions, $values);
+
+        if ($model->wasRecentlyCreated) {
+            $this->clearCache();
+        }
+
+        return $model;
     }
 
     /**
@@ -709,9 +719,8 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Generate a closure-safe cache key.
      *
-     * Overrides the parent to replace Closure instances with a stable
-     * fingerprint (file and line range) before serialization, preventing
-     * "Serialization of 'Closure' is not allowed" exceptions.
+     * Replaces Closure instances with a stable fingerprint (file and line range)
+     * before serialization, preventing "Serialization of 'Closure' is not allowed".
      *
      * @param  array<string, mixed>  $params
      *
@@ -728,10 +737,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Get the cache store instance, tagged when the driver supports it.
-     *
-     * Calls Cache::store() once and interrogates the returned instance directly,
-     * avoiding the redundant second Cache::store() call that the old
-     * supportsTags() helper incurred.
      */
     protected function store(): CacheContract
     {
@@ -769,9 +774,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Recursively replace Closure instances with deterministic string fingerprints.
-     *
-     * Uses ReflectionFunction to derive a stable key from the closure's
-     * source file and line range, making the cache key consistent across requests.
      *
      * @param  array<string, mixed>  $params
      *

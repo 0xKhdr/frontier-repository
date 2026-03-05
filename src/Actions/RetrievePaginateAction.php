@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Frontier\Repositories\Actions;
 
 use Frontier\Repositories\BaseAction;
@@ -13,6 +15,6 @@ class RetrievePaginateAction extends BaseAction
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->repository->retrievePaginate($columns, $options, $perPage, $page);
+        return $this->repository->paginate($columns, $options, $perPage, $page);
     }
 }

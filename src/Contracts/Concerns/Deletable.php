@@ -77,12 +77,12 @@ interface Deletable
     /**
      * Delete records matching conditions using Eloquent models.
      *
-     * This method retrieves all matching records and deletes each using
-     * Eloquent's model-level delete, ensuring that:
-     * - Model events (deleting/deleted) are fired for each record
+     * Retrieves all matching records and deletes each individually using
+     * Eloquent's model-level delete, ensuring that for each record:
+     * - Model events (deleting/deleted) are fired
      * - Soft deletes are respected (if model uses SoftDeletes trait)
      *
-     * Performance: Slower than delete() due to N+1 queries (1 SELECT + N DELETEs)
+     * Performance: N+1 queries (1 SELECT + 1 DELETE per record).
      * Use delete() for bulk operations where lifecycle isn't needed.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
@@ -90,17 +90,16 @@ interface Deletable
      *
      * @example
      * ```php
-     * $deleted = $repository->deleteBy(['status' => 'expired']);
+     * $deleted = $repository->deleteEach(['status' => 'expired']);
      * // Each model's "deleted" event was fired
      * ```
      */
-    public function deleteBy(array $conditions): Collection;
+    public function deleteEach(array $conditions): Collection;
 
     /**
      * Delete records matching conditions using Eloquent models or throw if none found.
      *
-     * Same as deleteBy() but throws ModelNotFoundException if no records match.
-     * Uses Eloquent models, so lifecycle events are triggered.
+     * Same as deleteEach() but throws ModelNotFoundException if no records match.
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @return Collection<int, \Illuminate\Database\Eloquent\Model> Collection of deleted models
@@ -109,11 +108,11 @@ interface Deletable
      *
      * @example
      * ```php
-     * $deleted = $repository->deleteByOrFail(['user_id' => 123]);
+     * $deleted = $repository->deleteEachOrFail(['user_id' => 123]);
      * // Throws ModelNotFoundException if no records match
      * ```
      */
-    public function deleteByOrFail(array $conditions): Collection;
+    public function deleteEachOrFail(array $conditions): Collection;
 
     /**
      * Delete a record by its primary key using Eloquent model.
@@ -158,25 +157,23 @@ interface Deletable
     /**
      * Delete multiple records by their primary keys using Eloquent models.
      *
-     * This method retrieves all matching records and deletes each using
-     * Eloquent's model-level delete, ensuring that:
-     * - Model events (deleting/deleted) are fired for each record
-     * - Soft deletes are respected (if model uses SoftDeletes trait)
+     * Retrieves all matching records and deletes each individually using
+     * Eloquent's model-level delete. Model events and soft deletes are respected.
      *
      * @param  array<int, int|string>  $ids  The primary key values
      * @return int Number of deleted rows
      *
      * @example
      * ```php
-     * $deleted = $repository->deleteByIds([1, 2, 3]);
+     * $deleted = $repository->deleteMany([1, 2, 3]);
      * ```
      */
-    public function deleteByIds(array $ids): int;
+    public function deleteMany(array $ids): int;
 
     /**
      * Delete multiple records by their primary keys or throw if none found.
      *
-     * Same as deleteByIds() but throws ModelNotFoundException if no records were deleted.
+     * Same as deleteMany() but throws ModelNotFoundException if no records were deleted.
      *
      * @param  array<int, int|string>  $ids  The primary key values
      * @return int Number of deleted rows (always >= 1)
@@ -185,11 +182,11 @@ interface Deletable
      *
      * @example
      * ```php
-     * $deleted = $repository->deleteByIdsOrFail([1, 2, 3]);
+     * $deleted = $repository->deleteManyOrFail([1, 2, 3]);
      * // Throws ModelNotFoundException if none of the IDs exist
      * ```
      */
-    public function deleteByIdsOrFail(array $ids): int;
+    public function deleteManyOrFail(array $ids): int;
 
     /*
     |--------------------------------------------------------------------------

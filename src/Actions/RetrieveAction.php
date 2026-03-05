@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Frontier\Repositories\Actions;
 
 use Frontier\Repositories\BaseAction;
@@ -9,6 +11,6 @@ class RetrieveAction extends BaseAction
 {
     public function handle(array $columns = ['*'], array $options = []): Collection
     {
-        return $this->repository->retrieve($columns, $options);
+        return $this->repository->get($columns, $options);
     }
 }

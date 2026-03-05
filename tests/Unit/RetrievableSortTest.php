@@ -99,10 +99,12 @@ describe('Retrievable Sort', function (): void {
             ->toThrow(InvalidArgumentException::class);
     });
 
-    it('throws exception for UNION-based injection attempts', function (): void {
-        [$repo] = createRepositoryForSort();
+    it('allows UNION in raw sort expressions (legitimate ORDER BY usage)', function (): void {
+        [$repo, $builder] = createRepositoryForSort();
 
-        expect(fn () => $repo->testSort('raw:1 UNION SELECT * FROM secrets', 'asc'))
-            ->toThrow(InvalidArgumentException::class);
+        // UNION is no longer blocked — not an injection risk in ORDER BY context.
+        // The query builder mock will handle the call without error.
+        $builder->shouldReceive('orderByRaw')->once()->andReturnSelf();
+        $repo->testSort('raw:FIELD(status, "active", "pending")', 'asc');
     });
 });

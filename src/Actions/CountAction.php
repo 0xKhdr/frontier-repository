@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Frontier\Repositories\Actions;
 
 use Frontier\Repositories\BaseAction;

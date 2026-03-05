@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use ReflectionException;
 use ReflectionFunction;
-use Throwable;
 
 /**
  * Cacheable repository decorator.
@@ -85,14 +85,26 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Clear all cache for this repository.
+     *
+     * Returns true when the tagged cache was successfully flushed (Redis, Memcached).
+     * Returns false for drivers without tag support (file, array, database) — cache
+     * entries cannot be invalidated and a warning is logged. Use a tag-aware driver
+     * in production, or disable caching entirely via REPOSITORY_CACHE_ENABLED=false.
      */
     public function clearCache(): bool
     {
-        if ($this->supportsTags()) {
-            return Cache::store($this->getCacheDriver())->tags([$this->getCachePrefix()])->flush();
+        $store = Cache::store($this->getCacheDriver());
+
+        if (! $store->supportsTags()) {
+            Log::warning('Repository cache could not be cleared: the configured cache driver does not support tags. Switch to a tag-aware driver (Redis, Memcached) or disable caching via REPOSITORY_CACHE_ENABLED=false.', [
+                'driver' => $this->getCacheDriver() ?? 'default',
+                'prefix' => $this->getCachePrefix(),
+            ]);
+
+            return false;
         }
 
-        return true;
+        return $store->tags([$this->getCachePrefix()])->flush();
     }
 
     /**
@@ -123,7 +135,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function retrieve(array $columns = ['*'], array $options = []): Collection
     {
-        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn (): Collection => $this->repository->retrieve($columns, $options));
+        return $this->cached('retrieve', ['columns' => $columns, 'options' => $options], fn () => $this->repository->retrieve($columns, $options));
     }
 
     /**
@@ -131,7 +143,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function retrieveBy(array $conditions, array $columns = ['*'], array $options = []): Collection
     {
-        return $this->cached('retrieveBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options], fn (): Collection => $this->repository->retrieveBy($conditions, $columns, $options));
+        return $this->cached('retrieveBy', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options], fn () => $this->repository->retrieveBy($conditions, $columns, $options));
     }
 
     /**
@@ -146,7 +158,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): LengthAwarePaginator => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
+        return $this->cached('retrievePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrievePaginate($columns, $options, $perPage, $page));
     }
 
     /**
@@ -163,7 +175,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): LengthAwarePaginator {
-        return $this->cached('retrieveByPaginate', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\LengthAwarePaginator => $this->repository->retrieveByPaginate($conditions, $columns, $options, $perPage, $page));
+        return $this->cached('retrieveByPaginate', ['conditions' => $conditions, 'columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrieveByPaginate($conditions, $columns, $options, $perPage, $page));
     }
 
     /**
@@ -178,7 +190,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?int $page = null
     ): Paginator {
-        return $this->cached('retrieveSimplePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn (): \Illuminate\Contracts\Pagination\Paginator => $this->repository->retrieveSimplePaginate($columns, $options, $perPage, $page));
+        return $this->cached('retrieveSimplePaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'page' => $page], fn () => $this->repository->retrieveSimplePaginate($columns, $options, $perPage, $page));
     }
 
     /**
@@ -193,7 +205,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
         ?int $perPage = null,
         ?string $cursor = null
     ): CursorPaginator {
-        return $this->cached('retrieveCursorPaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'cursor' => $cursor], fn (): \Illuminate\Contracts\Pagination\CursorPaginator => $this->repository->retrieveCursorPaginate($columns, $options, $perPage, $cursor));
+        return $this->cached('retrieveCursorPaginate', ['columns' => $columns, 'options' => $options, 'perPage' => $perPage, 'cursor' => $cursor], fn () => $this->repository->retrieveCursorPaginate($columns, $options, $perPage, $cursor));
     }
 
     /**
@@ -204,7 +216,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function find(array $conditions, array $columns = ['*']): ?Model
     {
-        return $this->cached('find', ['conditions' => $conditions, 'columns' => $columns], fn (): ?\Illuminate\Database\Eloquent\Model => $this->repository->find($conditions, $columns));
+        return $this->cached('find', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->find($conditions, $columns));
     }
 
     /**
@@ -215,7 +227,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function findOrFail(array $conditions, array $columns = ['*']): Model
     {
-        return $this->cached('findOrFail', ['conditions' => $conditions, 'columns' => $columns], fn (): \Illuminate\Database\Eloquent\Model => $this->repository->findOrFail($conditions, $columns));
+        return $this->cached('findOrFail', ['conditions' => $conditions, 'columns' => $columns], fn () => $this->repository->findOrFail($conditions, $columns));
     }
 
     /**
@@ -226,7 +238,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function findById(int|string $id, array $columns = ['*']): ?Model
     {
-        return $this->cached('findById', ['id' => $id, 'columns' => $columns], fn (): ?\Illuminate\Database\Eloquent\Model => $this->repository->findById($id, $columns));
+        return $this->cached('findById', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findById($id, $columns));
     }
 
     /**
@@ -239,7 +251,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function findByIdOrFail(int|string $id, array $columns = ['*']): Model
     {
-        return $this->cached('findByIdOrFail', ['id' => $id, 'columns' => $columns], fn (): \Illuminate\Database\Eloquent\Model => $this->repository->findByIdOrFail($id, $columns));
+        return $this->cached('findByIdOrFail', ['id' => $id, 'columns' => $columns], fn () => $this->repository->findByIdOrFail($id, $columns));
     }
 
     /**
@@ -249,7 +261,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function count(array $conditions = []): int
     {
-        return $this->cached('count', ['conditions' => $conditions], fn (): int => $this->repository->count($conditions));
+        return $this->cached('count', ['conditions' => $conditions], fn () => $this->repository->count($conditions));
     }
 
     /**
@@ -259,7 +271,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
      */
     public function exists(array $conditions): bool
     {
-        return $this->cached('exists', ['conditions' => $conditions], fn (): bool => $this->repository->exists($conditions));
+        return $this->cached('exists', ['conditions' => $conditions], fn () => $this->repository->exists($conditions));
     }
 
     /**
@@ -624,25 +636,17 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     }
 
     /**
-     * Get the cache store instance.
+     * Get the cache store instance, tagged when the driver supports it.
+     *
+     * Calls Cache::store() once and interrogates the returned instance directly,
+     * avoiding the redundant second Cache::store() call that the old
+     * supportsTags() helper incurred.
      */
     protected function store(): CacheContract
     {
         $store = Cache::store($this->getCacheDriver());
 
-        return $this->supportsTags() ? $store->tags([$this->getCachePrefix()]) : $store;
-    }
-
-    /**
-     * Check if the cache driver supports tags.
-     */
-    protected function supportsTags(): bool
-    {
-        try {
-            return Cache::store($this->getCacheDriver())->supportsTags();
-        } catch (Throwable) {
-            return false;
-        }
+        return $store->supportsTags() ? $store->tags([$this->getCachePrefix()]) : $store;
     }
 
     /**

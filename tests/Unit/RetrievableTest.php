@@ -18,7 +18,8 @@ function makeRetrievableRepo(): BaseRepository
     $model->shouldReceive('getTable')->andReturn('users');
     $builder->shouldReceive('getModel')->andReturn($model);
 
-    return new class($model) extends BaseRepository {
+    return new class($model) extends BaseRepository
+    {
         public function exposePrefixColumn(string $column): string
         {
             return $this->prefixColumn($column);

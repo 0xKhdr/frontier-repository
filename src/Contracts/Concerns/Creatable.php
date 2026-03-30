@@ -175,7 +175,7 @@ interface Creatable
      *
      * Prefer createMany() when model events and casts are required.
      *
-     * @param  array<int, array<string, mixed>>  $records    Records to insert
+     * @param  array<int, array<string, mixed>>  $records  Records to insert
      * @param  int  $chunkSize  Rows per INSERT statement (default 500)
      * @return bool True if all chunks inserted successfully
      *

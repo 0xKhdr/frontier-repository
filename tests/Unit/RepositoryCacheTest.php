@@ -16,7 +16,7 @@ describe('RepositoryCache', function (): void {
     // write operations against non-tag drivers (clearCache side-effect).
     beforeEach(fn () => Log::spy());
 
-    it('caches retrieve calls', function (): void {
+    it('caches get calls', function (): void {
         // Setup Config
         Config::set('repository-cache.enabled', true);
         Config::set('repository-cache.driver', 'array');
@@ -30,7 +30,7 @@ describe('RepositoryCache', function (): void {
 
         // Setup Repository Mock
         $innerRepo->shouldReceive('getTable')->andReturn('users');
-        $innerRepo->shouldReceive('retrieve')->once()->andReturn(new Collection(['data']));
+        $innerRepo->shouldReceive('get')->once()->andReturn(new Collection(['data']));
 
         // Setup Cache Store Mock
         $cacheStore->shouldReceive('supportsTags')->andReturn(false);
@@ -41,7 +41,7 @@ describe('RepositoryCache', function (): void {
 
         // Test
         $decorator = new BaseRepositoryCache($innerRepo);
-        $result = $decorator->retrieve();
+        $result = $decorator->get();
 
         expect($result)->toBeInstanceOf(Collection::class);
     });
@@ -68,7 +68,7 @@ describe('RepositoryCache', function (): void {
         $decorator->create([]);
     });
 
-    it('invalidates cache on deleteByIds', function (): void {
+    it('invalidates cache on deleteMany', function (): void {
         Config::set('repository-cache.enabled', true);
 
         $innerRepo = Mockery::mock(Repository::class);
@@ -77,12 +77,12 @@ describe('RepositoryCache', function (): void {
         Cache::shouldReceive('store')->andReturn($cacheStore);
 
         $innerRepo->shouldReceive('getTable')->andReturn('users');
-        $innerRepo->shouldReceive('deleteByIds')->once()->with([1, 2])->andReturn(2);
+        $innerRepo->shouldReceive('deleteMany')->once()->with([1, 2])->andReturn(2);
 
         $cacheStore->shouldReceive('supportsTags')->andReturn(false);
 
         $decorator = new BaseRepositoryCache($innerRepo);
-        $result = $decorator->deleteByIds([1, 2]);
+        $result = $decorator->deleteMany([1, 2]);
 
         expect($result)->toBe(2);
     });

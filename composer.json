@@ -18,7 +18,6 @@
   ],
   "require": {
     "php": ">=8.2",
-    "frontier/action": "*",
     "illuminate/console": "^10.0|^11.0|^12.0",
     "illuminate/contracts": "^10.0|^11.0|^12.0",
     "illuminate/database": "^10.0|^11.0|^12.0",
@@ -33,8 +32,8 @@
     "rector/rector": "^2.0"
   },
   "suggest": {
-    "frontier/module": "Required for --module option support",
-    "tucker-eric/eloquentfilter": "Required for using filters in retrieve queries"
+    "internachi/modular": "Required for --module option support",
+    "tucker-eric/eloquentfilter": "Required for using filters in get/paginate queries"
   },
   "autoload": {
     "psr-4": {

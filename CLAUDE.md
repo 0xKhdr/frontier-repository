@@ -23,7 +23,6 @@ frontier-repository/
 ├── src/
 │   ├── BaseRepository.php          # Core Eloquent repository implementation
 │   ├── BaseRepositoryCache.php     # Caching decorator wrapping BaseRepository
-│   ├── BaseAction.php              # Base action class integrating with frontier/action
 │   ├── Contracts/
 │   │   ├── Repository.php          # Main interface (composes all Concerns)
 │   │   ├── RepositoryCache.php     # Cache control interface
@@ -43,7 +42,6 @@ frontier-repository/
 │   ├── repository.stub             # Stub for concrete repository
 │   ├── repository-cache.stub       # Stub for cache decorator
 │   ├── repository-interface.stub   # Stub for user repository interface
-│   └── repository-action.stub      # Stub for repository-bound action
 ├── tests/
 │   ├── Pest.php                    # Pest bootstrap (extends TestCase)
 │   ├── TestCase.php                # Orchestra Testbench base
@@ -75,19 +73,19 @@ UserRepository (interface)
 - Takes an Eloquent `Model` in the constructor
 - Every method creates a **fresh query builder** (`newQuery()`) — no state leaks between calls
 - Optional `withBuilder(Builder $builder)` sets a base builder cloned for all queries
-- Methods follow naming conventions: `find*` (single record), `retrieve*` (collections/pagination), `update*`, `delete*`
+- Methods follow naming conventions: `find*` (single record), `get*` / `paginate*` (collections/pagination), `update*`, `delete*`
 
 ### BaseRepositoryCache (`src/BaseRepositoryCache.php`)
 
 - Decorator wrapping any `Repository` contract implementation
-- Read methods (`retrieve*`, `find*`, `count`, `exists`) use `cached()` helper — returns from cache or executes and stores
+- Read methods (`get*`, `paginate*`, `find*`, `count`, `exists`) use `cached()` helper — returns from cache or executes and stores
 - Write methods (`create*`, `update*`, `delete*`, `insert*`, `upsert`) call the inner repo then call `clearCache()`
 - Cache key: `{prefix}:{method}:md5(serialized params)` — keys are stable (closures replaced with file+line fingerprints)
 - Tag support: if the driver supports tags, uses tagged cache for efficient `clearCache()`
 
 ### Retrievable Trait (`src/Traits/Retrievable.php`)
 
-Handles the `$options` array in `retrieve()` / `retrievePaginate()`:
+Handles the `$options` array in `get()` and pagination methods:
 
 | Option | Behavior |
 |--------|----------|
@@ -100,8 +98,8 @@ Handles the `$options` array in `retrieve()` / `retrievePaginate()`:
 | `direction` | `'asc'`/`'desc'` or array matching `sort` |
 | `with` | Eager load relations |
 | `with_count` | Count relations |
-| `limit` | Only for `retrieve()`, not pagination methods |
-| `offset` | Only for `retrieve()`, not pagination methods |
+| `limit` | Only for `get()`, not pagination methods |
+| `offset` | Only for `get()`, not pagination methods |
 
 Column prefixing: all columns are automatically prefixed with the table name (e.g. `users.id`) unless they already contain `.` or are prefixed with `@`.
 
@@ -167,9 +165,9 @@ vendor/bin/pest --testsuite Feature
 5. **Method naming**:
    - `find*` — single model or null
    - `findOrFail*` / `*OrFail` — throws `ModelNotFoundException` when not found
-   - `retrieve*` — collections or paginators
+   - `get*` / `paginate*` — collections or paginators
    - `update*` / `delete*` using `update($conditions, $values)` — bulk query-level (no model events)
-   - `updateBy*` / `deleteBy*` — model-level (triggers events/casts)
+   - `updateEach*` / `deleteEach*` / `*ById` / `deleteMany*` — model-level variants (trigger events/casts where applicable)
    - `*ById` variants accept a scalar primary key
 6. **No state mutation** between queries in `BaseRepository` — always call `newQuery()`
 
@@ -184,9 +182,8 @@ Registered by `ServiceProvider`. Commands live in `src/Console/Commands/`:
 | `frontier:repository {Name}` | `MakeRepository` | Create a concrete repository |
 | `frontier:repository-cache {Name}` | `MakeRepositoryCache` | Create a cache decorator |
 | `frontier:repository-interface {Name}` | `MakeRepositoryInterface` | Create a repository interface |
-| `frontier:repository-action {Name}` | `MakeRepositoryAction` | Create a repository-bound action |
 
-All commands support `--module` (requires `frontier/module`) for modular app layouts.
+All commands support `--module` (requires `internachi/modular`) for modular app layouts.
 
 ---
 
@@ -231,6 +228,5 @@ Publish: `php artisan vendor:publish --tag=repository-config`
 
 | Package | Role |
 |---------|------|
-| `frontier/action` | `BaseAction` extends `FrontierBaseAction` |
-| `tucker-eric/eloquentfilter` | Optional — enables `filters` option in `retrieve()` (model needs `Filterable` trait) |
-| `frontier/module` | Optional — enables `--module` flag on generator commands |
+| `tucker-eric/eloquentfilter` | Optional — enables `filters` option in `get()` / pagination (model needs `Filterable` trait) |
+| `internachi/modular` | Optional — enables `--module` flag on generator commands |

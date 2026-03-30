@@ -18,9 +18,9 @@ describe('MakeRepositoryCache Command', function (): void {
     });
 });
 
-describe('MakeRepositoryAction Command', function (): void {
+describe('MakeRepositoryInterface Command', function (): void {
     it('is registered', function (): void {
         $commands = $this->app[Kernel::class]->all();
-        expect($commands)->toHaveKey('frontier:repository-action');
+        expect($commands)->toHaveKey('frontier:repository-interface');
     });
 });

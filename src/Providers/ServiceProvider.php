@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Frontier\Repositories\Providers;
 
 use Frontier\Repositories\Console\Commands\MakeRepository;
-use Frontier\Repositories\Console\Commands\MakeRepositoryAction;
 use Frontier\Repositories\Console\Commands\MakeRepositoryCache;
 use Frontier\Repositories\Console\Commands\MakeRepositoryInterface;
 use Illuminate\Support\ServiceProvider as IlluminateServiceProvider;
@@ -19,7 +18,6 @@ class ServiceProvider extends IlluminateServiceProvider
     protected array $commands = [
         MakeRepository::class,
         MakeRepositoryCache::class,
-        MakeRepositoryAction::class,
         MakeRepositoryInterface::class,
     ];
 

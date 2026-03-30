@@ -98,7 +98,7 @@ abstract class BaseRepository implements RepositoryContract
      *
      * Prefer createMany() when model events and casts are required.
      *
-     * @param  array<int, array<string, mixed>>  $records    Records to insert
+     * @param  array<int, array<string, mixed>>  $records  Records to insert
      * @param  int  $chunkSize  Rows per INSERT statement (default 500)
      */
     public function insertMany(array $records, int $chunkSize = 500): bool

@@ -35,11 +35,11 @@ class $CLASS_NAME$ extends BaseRepository
     //
     // public function findActive(array $columns = ['*']): Collection
     // {
-    //     return $this->retrieve($columns, ['scopes' => ['active']]);
+    //     return $this->get($columns, ['scopes' => ['active']]);
     // }
     //
     // public function findByEmail(string $email): ?Model
     // {
-    //     return $this->find(['email' => $email]);
+    //     return $this->findBy(['email' => $email]);
     // }
 }

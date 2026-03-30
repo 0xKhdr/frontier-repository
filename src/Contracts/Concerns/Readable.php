@@ -122,7 +122,6 @@ interface Readable
      *
      * @param  array<string, mixed>  $conditions  Where conditions
      * @param  array<int, string>  $columns  Columns to select
-     * @return Model|null
      *
      * @example
      * ```php

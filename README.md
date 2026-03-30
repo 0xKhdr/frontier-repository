@@ -96,7 +96,7 @@ Caching is implemented via the Decorator Pattern. The `BaseRepositoryCache` wrap
     ┌───────────────┴───────────────┐
     ▼                               ▼
 UserRepositoryEloquent              UserRepositoryCache
-extends BaseRepository              extends RepositoryCache
+extends BaseRepository              extends BaseRepositoryCache
 (Direct DB Access)                  (Caching Decorator)
 ```
 
@@ -114,7 +114,7 @@ class UserController extends Controller
     public function index()
     {
         // Automatically cached if UserRepositoryCache is bound
-        return $this->users->retrieve();
+        return $this->users->get();
     }
 }
 ```
@@ -125,10 +125,10 @@ The `BaseRepositoryCache` exposes helper methods to control cache behavior:
 
 ```php
 // Skip cache for this query
-$users->withoutCache()->retrieve();
+$users->withoutCache()->get();
 
 // Force refresh cache
-$users->refreshCache()->retrieve();
+$users->refreshCache()->get();
 
 // Clear all cache
 $users->clearCache();
@@ -140,8 +140,8 @@ $users->clearCache();
 
 | Method | Behavior |
 |--------|----------|
-| `retrieve()` | Cached (Read) |
-| `retrievePaginate()` | Cached (Read) |
+| `get()` | Cached (Read) |
+| `paginate()` | Cached (Read) |
 | `find()` | Cached (Read) |
 | `findOrFail()` | Cached (Read) |
 | `count()` | Cached (Read) |
@@ -180,7 +180,6 @@ return [
 | `frontier:repository {name}` | Create standard repository |
 | `frontier:repository-cache {name}` | Create cached repository decorator |
 | `frontier:repository-interface {name}` | Create repository interface |
-| `frontier:repository-action {name}` | Create repository action |
 
 All commands support the `--module` flag for modular applications.
 
@@ -193,9 +192,9 @@ All commands support the `--module` flag for modular applications.
 $user = $this->users->create(['name' => 'John']);
 
 // READ
-$user = $this->users->find(['id' => 1]);
-$users = $this->users->retrieve();
-$users = $this->users->retrievePaginate(['*'], ['per_page' => 15]);
+$user = $this->users->find(1);
+$users = $this->users->get();
+$users = $this->users->paginate(['*'], perPage: 15);
 
 // UPDATE
 $count = $this->users->update(['id' => 1], ['name' => 'Jane']);
@@ -208,10 +207,10 @@ $count = $this->users->delete(['id' => 1]);
 
 ## Advanced Queries
 
-The `retrieve()` and `retrievePaginate()` methods accept an `$options` array to build complex queries without writing boilerplate.
+The `get()` and pagination methods (`paginate()`, `simplePaginate()`, `cursorPaginate()`) accept an `$options` array to build complex queries without writing boilerplate.
 
 ```php
-$users = $this->users->retrieve(['id', 'name', 'email'], [
+$users = $this->users->get(['id', 'name', 'email'], [
     // Filtering (requires EloquentFilter on Model)
     'filters' => ['status' => 'active', 'role' => 'admin'],
     
@@ -226,7 +225,7 @@ $users = $this->users->retrieve(['id', 'name', 'email'], [
     'sort' => 'created_at',
     'direction' => 'desc',
     
-    // Pagination (for retrievePaginate)
+    // Pagination (used by paginate/simplePaginate/cursorPaginate)
     'per_page' => 25,
     
     // Limits & Offsets
@@ -276,8 +275,7 @@ composer rector        # Apply refactorings
 | Package | Description |
 |---------|-------------|
 | [frontier/frontier](https://github.com/0xKhdr/frontier) | Laravel Starter Kit |
-| [frontier/action](https://github.com/0xKhdr/frontier-action) | Action Pattern |
-| [frontier/module](https://github.com/0xKhdr/frontier-module) | Modular Architecture |
+| [internachi/modular](https://github.com/InterNACHI/modular) | Modular Architecture |
 
 ---
 

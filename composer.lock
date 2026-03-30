@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c67ea3ff955fc2d2aad0c99f4a6913b1",
+    "content-hash": "31bd485914c29badf975be8227a6cc9f",
     "packages": [
         {
             "name": "brick/math",
@@ -507,75 +507,6 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
-        },
-        {
-            "name": "frontier/action",
-            "version": "v2.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/0xKhdr/frontier-action.git",
-                "reference": "f678335f354f368891b332eccb1c9e2e0f2c975f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/0xKhdr/frontier-action/zipball/f678335f354f368891b332eccb1c9e2e0f2c975f",
-                "reference": "f678335f354f368891b332eccb1c9e2e0f2c975f",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/console": "^10.0|^11.0|^12.0",
-                "illuminate/contracts": "^10.0|^11.0|^12.0",
-                "illuminate/database": "^10.0|^11.0|^12.0",
-                "illuminate/support": "^10.0|^11.0|^12.0",
-                "laravel/prompts": "^0.1|^0.2|^0.3",
-                "php": ">=8.2"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.22",
-                "orchestra/testbench": "^9.0|^10.0",
-                "pestphp/pest": "^3.0",
-                "pestphp/pest-plugin-laravel": "^3.0",
-                "rector/rector": "^2.0"
-            },
-            "suggest": {
-                "frontier/module": "Required for --module option support"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Frontier\\Actions\\Providers\\ServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Frontier\\Actions\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Mohamed Khedr",
-                    "email": "0xkhdr@gmail.com",
-                    "role": "Developer"
-                }
-            ],
-            "description": "Laravel Frontier Actions Package",
-            "keywords": [
-                "action-class",
-                "actions",
-                "frontier",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/0xKhdr/frontier-action/issues",
-                "source": "https://github.com/0xKhdr/frontier-action/tree/v2.0.0"
-            },
-            "time": "2025-12-12T21:09:34+00:00"
         },
         {
             "name": "fruitcake/php-cors",

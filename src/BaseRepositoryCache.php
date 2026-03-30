@@ -248,7 +248,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Find a record by its primary key (cached).
      *
-     * @param  int|string  $id
      * @param  array<int, string>  $columns
      */
     public function find(int|string $id, array $columns = ['*']): ?Model
@@ -259,7 +258,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Find a record by its primary key or throw exception (cached).
      *
-     * @param  int|string  $id
      * @param  array<int, string>  $columns
      *
      * @throws ModelNotFoundException
@@ -423,9 +421,7 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Update a record by its primary key (invalidates cache).
      *
-     * @param  int|string  $id
      * @param  array<string, mixed>  $values
-     * @return Model|null
      */
     public function updateById(int|string $id, array $values): ?Model
     {
@@ -435,7 +431,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Update a record by its primary key or throw exception (invalidates cache).
      *
-     * @param  int|string  $id
      * @param  array<string, mixed>  $values
      *
      * @throws ModelNotFoundException
@@ -493,9 +488,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Delete a record by its primary key (invalidates cache).
-     *
-     * @param  int|string  $id
-     * @return bool
      */
     public function deleteById(int|string $id): bool
     {
@@ -505,7 +497,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
     /**
      * Delete a record by its primary key or throw exception (invalidates cache).
      *
-     * @param  int|string  $id
      *
      * @throws ModelNotFoundException
      */
@@ -589,8 +580,6 @@ class BaseRepositoryCache implements RepositoryCacheContract, RepositoryContract
 
     /**
      * Restore a single soft-deleted record by its primary key (invalidates cache).
-     *
-     * @param  int|string  $id
      */
     public function restoreById(int|string $id): bool
     {

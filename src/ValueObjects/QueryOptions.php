@@ -23,29 +23,29 @@ namespace Frontier\Repositories\ValueObjects;
  *     limit: 20,
  * );
  *
- * $users = $userRepository->retrieve(['*'], $options);
- * $users = $userRepository->retrieveBy(['status' => 'active'], ['*'], $options);
+ * $users = $userRepository->get(['*'], $options);
+ * $users = $userRepository->getBy(['status' => 'active'], ['*'], $options);
  * ```
  */
 final class QueryOptions
 {
     /**
-     * @param  array<string, mixed>  $filters     EloquentFilter filters
-     *                                             (requires Filterable trait on model)
-     * @param  array<int|string, mixed>  $scopes   Local scopes to apply:
-     *                                             - Keyed: ['scopeName' => [$arg1, $arg2]]
-     *                                             - Indexed: ['scopeName'] (no args)
-     * @param  array<int|string, mixed>  $joins    Join scopes to apply (same format as scopes)
-     * @param  string|array<int, string>|null  $sort       Column(s) to sort by.
-     *                                                     Prefix with 'raw:' for raw SQL expressions.
+     * @param  array<string, mixed>  $filters  EloquentFilter filters
+     *                                         (requires Filterable trait on model)
+     * @param  array<int|string, mixed>  $scopes  Local scopes to apply:
+     *                                            - Keyed: ['scopeName' => [$arg1, $arg2]]
+     *                                            - Indexed: ['scopeName'] (no args)
+     * @param  array<int|string, mixed>  $joins  Join scopes to apply (same format as scopes)
+     * @param  string|array<int, string>|null  $sort  Column(s) to sort by.
+     *                                                Prefix with 'raw:' for raw SQL expressions.
      * @param  string|array<int, string>|null  $direction  Sort direction(s): 'asc' or 'desc'.
      *                                                     Array must match length of $sort when both are arrays.
-     * @param  string|array<int, string>|null  $groupBy    Column(s) to group by
-     * @param  array<int|string, mixed>  $with       Eager-load relations (passed to Eloquent with())
-     * @param  array<int, string>  $withCount          Relations to count (passed to Eloquent withCount())
-     * @param  bool  $distinct                           Apply SELECT DISTINCT
-     * @param  int|null  $limit                          Limit number of rows (retrieve() only — ignored by pagination methods)
-     * @param  int|null  $offset                         Offset rows (retrieve() only — ignored by pagination methods)
+     * @param  string|array<int, string>|null  $groupBy  Column(s) to group by
+     * @param  array<int|string, mixed>  $with  Eager-load relations (passed to Eloquent with())
+     * @param  array<int, string>  $withCount  Relations to count (passed to Eloquent withCount())
+     * @param  bool  $distinct  Apply SELECT DISTINCT
+     * @param  int|null  $limit  Limit number of rows (get() only — ignored by pagination methods)
+     * @param  int|null  $offset  Offset rows (get() only — ignored by pagination methods)
      */
     public function __construct(
         public readonly array $filters = [],

@@ -17,8 +17,8 @@ describe('Repository Contract', function (): void {
     });
 
     it('has query methods', function (): void {
-        expect(method_exists(Repository::class, 'retrieve'))->toBeTrue()
-            ->and(method_exists(Repository::class, 'retrievePaginate'))->toBeTrue()
+        expect(method_exists(Repository::class, 'get'))->toBeTrue()
+            ->and(method_exists(Repository::class, 'paginate'))->toBeTrue()
             ->and(method_exists(Repository::class, 'count'))->toBeTrue()
             ->and(method_exists(Repository::class, 'exists'))->toBeTrue();
     });

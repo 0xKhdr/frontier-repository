@@ -23,14 +23,15 @@ describe('Retrievable Sort', function (): void {
         $builder->shouldReceive('when')->andReturnSelf();
         $builder->shouldReceive('get')->andReturn(collect());
 
-        $repo = new class($model) extends BaseRepository {
+        $repo = new class($model) extends BaseRepository
+        {
             /**
-             * Drives sorting through the public retrieve() options array so that
+             * Drives sorting through the public get() options array so that
              * the private applyOrder() is exercised without coupling to internals.
              */
             public function testSort(string|array|null $sort, string|array|null $direction): void
             {
-                $this->retrieve(['*'], ['sort' => $sort, 'direction' => $direction]);
+                $this->get(['*'], ['sort' => $sort, 'direction' => $direction]);
             }
 
             public function testRawExpression(string $expr): void

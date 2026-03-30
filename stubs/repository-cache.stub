@@ -23,11 +23,11 @@ use Frontier\Repositories\BaseRepositoryCache;
  *
  * Per-call TTL override:
  *
- *   $repo->cacheFor(30)->findById($id);   // cached for 30 seconds only
+ *   $repo->cacheFor(30)->find($id);       // cached for 30 seconds only
  *
  * Skip cache for one call:
  *
- *   $repo->withoutCache()->retrieve();    // bypasses cache, hits database
+ *   $repo->withoutCache()->get();         // bypasses cache, hits database
  */
 class $CLASS_NAME$ extends BaseRepositoryCache
 {

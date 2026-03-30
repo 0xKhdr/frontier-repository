@@ -20,9 +20,9 @@ use Frontier\Repositories\Contracts\Concerns\Updatable;
  * ## Composed Interfaces
  *
  * - {@see Creatable} - CREATE operations (create, createMany, insert, firstOrCreate)
- * - {@see Readable} - READ operations (find, retrieve, paginate, count)
- * - {@see Updatable} - UPDATE operations (update, updateBy, updateById, upsert)
- * - {@see Deletable} - DELETE operations (delete, deleteBy, deleteById)
+ * - {@see Readable} - READ operations (find, get, paginate, count)
+ * - {@see Updatable} - UPDATE operations (update, updateEach, updateById, upsert)
+ * - {@see Deletable} - DELETE operations (delete, deleteEach, deleteById, deleteMany)
  * - {@see RepositoryUtility} - Utility operations (chunk, transaction, builder access)
  *
  * ## Usage

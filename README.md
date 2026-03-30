@@ -1,15 +1,7 @@
-<p align="center">
-  <h1 align="center">Frontier Repository</h1>
-  <p align="center">
-    <strong>Repository Pattern with Transparent Caching for Laravel</strong>
-  </p>
+<h1 align="center">Frontier Repository</h1>
 
 <p align="center">
-  <a href="#installation">Installation</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#caching">Caching</a> •
-  <a href="#api-reference">API Reference</a> •
-  <a href="#commands">Commands</a>
+  Repository Pattern + Optional Transparent Caching for Laravel
 </p>
 
 <p align="center">
@@ -20,13 +12,44 @@
 
 ---
 
-## Features
+## Table of Contents
 
-- ✅ **Repository Pattern** — Clean abstraction for data access
-- ✅ **Decorator Caching** — Choose between simple or cached repository implementations
-- ✅ **Full CRUD** — Create, Read, Update, Delete with consistent API
-- ✅ **Advanced Queries** — Filtering, sorting, pagination, scopes
-- ✅ **Module Support** — Works with internachi/modular
+- [Why this package?](#why-this-package)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Core Usage](#core-usage)
+- [Query Options](#query-options)
+- [Caching](#caching)
+- [Configuration](#configuration)
+- [Artisan Generators](#artisan-generators)
+- [V2 Notes (Breaking Changes)](#v2-notes-breaking-changes)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Why this package?
+
+`frontier/repository` gives you a clean repository contract over Eloquent, with optional caching via a decorator.
+
+### What you get
+
+- ✅ Consistent CRUD API (`create`, `get`, `paginate`, `update`, `delete`, etc.)
+- ✅ Interface-first architecture (easy mocking, testing, swapping implementations)
+- ✅ Optional cache decorator (`BaseRepositoryCache`) for read methods
+- ✅ Cache invalidation on writes out-of-the-box
+- ✅ Advanced query options (filters, scopes, eager loads, sorting, grouping)
+- ✅ Code generators for repository/interface/cache scaffolding
+- ✅ Optional modular support via `internachi/modular` (`--module` option)
+
+---
+
+## Requirements
+
+- PHP **8.2+**
+- Laravel **10 / 11 / 12**
 
 ---
 
@@ -36,227 +59,272 @@
 composer require frontier/repository
 ```
 
+If you want to customize cache config:
+
+```bash
+php artisan vendor:publish --tag=repository-config
+```
+
 ---
 
 ## Quick Start
 
-### 1. Create Interface
-It is best practice to always code against interfaces.
+### 1) Generate an interface
 
 ```bash
 php artisan frontier:repository-interface UserRepository
 ```
 
-### 2. Generate Repository
-Create a standard repository that implements the interface.
+### 2) Generate an Eloquent repository
 
 ```bash
 php artisan frontier:repository UserRepositoryEloquent
 ```
 
-### 3. Generate Repository Cache (Optional)
-Create a decorator repository that adds caching.
+### 3) (Optional) Generate a cache decorator
 
 ```bash
 php artisan frontier:repository-cache UserRepositoryCache
 ```
 
-### 4. Bind in ServiceProvider
-Bind your interface to either the standard repository or the cached one.
+### 4) Set your model in the generated repository
 
 ```php
-// app/Providers/RepositoryServiceProvider.php
+<?php
 
-// Option A: Standard Repository (No Caching)
-$this->app->bind(UserRepository::class, function ($app) {
-    return new UserRepositoryEloquent(new User());
-});
+declare(strict_types=1);
 
-// Option B: Cached Repository (Repository + Caching Decorator)
-$this->app->bind(UserRepository::class, function ($app) {
-    return new UserRepositoryCache(
-        new UserRepositoryEloquent(new User())
-    );
-});
+namespace App\Repositories;
+
+use App\Models\User;
+use Frontier\Repositories\BaseRepository;
+
+class UserRepositoryEloquent extends BaseRepository implements UserRepository
+{
+    public function __construct()
+    {
+        parent::__construct(new User());
+    }
+}
+```
+
+### 5) Bind interface to implementation
+
+```php
+// app/Providers/AppServiceProvider.php
+
+use App\Models\User;
+use App\Repositories\UserRepository;
+use App\Repositories\UserRepositoryCache;
+use App\Repositories\UserRepositoryEloquent;
+
+public function register(): void
+{
+    // Option A: No caching
+    $this->app->bind(UserRepository::class, fn () => new UserRepositoryEloquent());
+
+    // Option B: Cached decorator
+    // $this->app->bind(UserRepository::class, fn () =>
+    //     new UserRepositoryCache(new UserRepositoryEloquent())
+    // );
+}
+```
+
+---
+
+## Core Usage
+
+Inject your interface and use a consistent API.
+
+```php
+use App\Repositories\UserRepository;
+
+class UserController
+{
+    public function __construct(private UserRepository $users) {}
+
+    public function index()
+    {
+        return $this->users->get(['id', 'name', 'email'], [
+            'sort' => 'created_at',
+            'direction' => 'desc',
+            'limit' => 20,
+        ]);
+    }
+}
+```
+
+### CRUD examples
+
+```php
+// CREATE
+$user = $users->create(['name' => 'John', 'email' => 'john@example.com']);
+$users->createMany([
+    ['name' => 'A', 'email' => 'a@example.com'],
+    ['name' => 'B', 'email' => 'b@example.com'],
+]);
+
+// READ
+$one = $users->find(1);
+$oneOrFail = $users->findOrFail(1);
+$by = $users->findBy(['email' => 'john@example.com']);
+$list = $users->get();
+
+// PAGINATION
+$page = $users->paginate(perPage: 15);
+$simple = $users->simplePaginate(perPage: 15);
+$cursor = $users->cursorPaginate(perPage: 50);
+
+// UPDATE
+$affected = $users->update(['status' => 'pending'], ['status' => 'processed']);
+$updatedModel = $users->updateById(1, ['name' => 'Johnny']);
+$users->upsert([
+    ['email' => 'john@example.com', 'name' => 'John'],
+    ['email' => 'jane@example.com', 'name' => 'Jane'],
+], ['email'], ['name']);
+
+// DELETE
+$deleted = $users->delete(['status' => 'inactive']);
+$users->deleteById(1);
+$users->deleteMany([2, 3, 4]);
+
+// AGGREGATION
+$total = $users->count();
+$exists = $users->exists(['email' => 'john@example.com']);
+```
+
+---
+
+## Query Options
+
+`get()` and pagination methods accept an `$options` array.
+
+```php
+$users = $usersRepository->get(['id', 'name', 'email'], [
+    'filters' => ['status' => 'active'],     // requires model Filterable trait
+    'scopes' => ['verified', 'olderThan' => [18]],
+    'joins' => ['profile'],
+    'with' => ['profile', 'roles'],
+    'with_count' => ['posts'],
+    'sort' => ['name', 'created_at'],
+    'direction' => ['asc', 'desc'],
+    'group_by' => ['status'],
+    'distinct' => true,
+    'limit' => 25,    // get() only
+    'offset' => 0,    // get() only
+]);
+```
+
+### Options reference
+
+| Option | Type | Notes |
+|---|---|---|
+| `filters` | array | Uses `->filter()` (EloquentFilter package/model trait required) |
+| `scopes` | array | Applies local scopes |
+| `joins` | array | Applies join scopes |
+| `with` | array | Eager load relations |
+| `with_count` | array | Relation counts |
+| `sort` | string\|array | Supports `raw:` prefix for raw expressions |
+| `direction` | string\|array | `asc` / `desc` |
+| `group_by` | string\|array | Grouping columns |
+| `distinct` | bool | Applies `distinct()` |
+| `limit` | int | `get()` only |
+| `offset` | int | `get()` only |
+
+### Using `QueryOptions` value object
+
+```php
+use Frontier\Repositories\ValueObjects\QueryOptions;
+
+$options = new QueryOptions(
+    sort: 'created_at',
+    direction: 'desc',
+    with: ['profile'],
+    limit: 20,
+);
+
+$users = $usersRepository->get(['*'], $options);
 ```
 
 ---
 
 ## Caching
 
-Caching is implemented via the Decorator Pattern. The `BaseRepositoryCache` wraps your `BaseRepository` and handles caching logic transparently.
+Caching uses the **Decorator Pattern**:
 
-### Architecture
+- `BaseRepository` → direct database operations
+- `BaseRepositoryCache` → wraps a repository and caches read operations
 
-```
-┌─────────────────────────────────────────┐
-│         UserRepository         │
-└───────────────────┬─────────────────────┘
-                    │ bind to either:
-    ┌───────────────┴───────────────┐
-    ▼                               ▼
-UserRepositoryEloquent              UserRepositoryCache
-extends BaseRepository              extends BaseRepositoryCache
-(Direct DB Access)                  (Caching Decorator)
-```
+### Read/Write behavior
 
-### Usage
+| Category | Methods |
+|---|---|
+| Cached reads | `get*`, `paginate*`, `find*`, `count`, `exists` |
+| Cache invalidating writes | `create*`, `update*`, `delete*`, `insert*`, `upsert`, `restore*` |
 
-Inject the interface into your controllers or actions:
+### Cache control
 
 ```php
-class UserController extends Controller
-{
-    public function __construct(
-        protected UserRepository $users
-    ) {}
-
-    public function index()
-    {
-        // Automatically cached if UserRepositoryCache is bound
-        return $this->users->get();
-    }
-}
+$users->withoutCache()->get();     // skip cache for next read
+$users->refreshCache()->get();     // force refresh for next read
+$users->clearCache();              // clear tagged cache entries
 ```
 
-### Cache Control Methods
-
-The `BaseRepositoryCache` exposes helper methods to control cache behavior:
+If your concrete repository extends `BaseRepositoryCache`, you can also do:
 
 ```php
-// Skip cache for this query
-$users->withoutCache()->get();
-
-// Force refresh cache
-$users->refreshCache()->get();
-
-// Clear all cache
-$users->clearCache();
+$users->cacheFor(30)->find(1);     // override TTL for one call
 ```
 
----
-
-## Caching Behavior
-
-| Method | Behavior |
-|--------|----------|
-| `get()` | Cached (Read) |
-| `paginate()` | Cached (Read) |
-| `find()` | Cached (Read) |
-| `findOrFail()` | Cached (Read) |
-| `count()` | Cached (Read) |
-| `exists()` | Cached (Read) |
-| `create()` | Invalidates Cache |
-| `update()` | Invalidates Cache |
-| `delete()` | Invalidates Cache |
-| `updateOrCreate()` | Invalidates Cache |
-| `insert()` | Invalidates Cache |
-| `upsert()` | Invalidates Cache |
+> `clearCache()` is most effective with tag-aware drivers (Redis/Memcached).
 
 ---
 
 ## Configuration
 
-Publish config:
-```bash
-php artisan vendor:publish --tag=repository-config
-```
+Published file: `config/repository-cache.php`
+
+Common keys:
+
+- `enabled` (`REPOSITORY_CACHE_ENABLED`) — global cache toggle
+- `driver` (`REPOSITORY_CACHE_DRIVER`) — cache store name or default
+- `ttl` (`REPOSITORY_CACHE_TTL`) — default seconds
+- `prefix` (`REPOSITORY_CACHE_PREFIX`) — global key prefix setting
+
+Example:
 
 ```php
-// config/repository-cache.php
 return [
     'enabled' => env('REPOSITORY_CACHE_ENABLED', true),
     'driver' => env('REPOSITORY_CACHE_DRIVER', null),
     'ttl' => env('REPOSITORY_CACHE_TTL', 3600),
+    'prefix' => env('REPOSITORY_CACHE_PREFIX', 'repository'),
 ];
 ```
 
 ---
 
-## Artisan Commands
+## Artisan Generators
 
 | Command | Description |
-|---------|-------------|
-| `frontier:repository {name}` | Create standard repository |
-| `frontier:repository-cache {name}` | Create cached repository decorator |
-| `frontier:repository-interface {name}` | Create repository interface |
+|---|---|
+| `php artisan frontier:repository-interface {Name}` | Generate repository interface |
+| `php artisan frontier:repository {Name}` | Generate concrete Eloquent repository |
+| `php artisan frontier:repository-cache {Name}` | Generate cache decorator |
 
-All commands support the `--module` flag for modular applications.
-
----
-
-## CRUD Operations
-
-```php
-// CREATE
-$user = $this->users->create(['name' => 'John']);
-
-// READ
-$user = $this->users->find(1);
-$users = $this->users->get();
-$users = $this->users->paginate(['*'], perPage: 15);
-
-// UPDATE
-$count = $this->users->update(['id' => 1], ['name' => 'Jane']);
-
-// DELETE
-$count = $this->users->delete(['id' => 1]);
-```
+All commands support optional `--module` when using `internachi/modular`.
 
 ---
 
-## Advanced Queries
+## V2 Notes (Breaking Changes)
 
-The `get()` and pagination methods (`paginate()`, `simplePaginate()`, `cursorPaginate()`) accept an `$options` array to build complex queries without writing boilerplate.
+If you upgraded from old API naming:
 
-```php
-$users = $this->users->get(['id', 'name', 'email'], [
-    // Filtering (requires EloquentFilter on Model)
-    'filters' => ['status' => 'active', 'role' => 'admin'],
-    
-    // Scopes
-    'scopes' => ['verified', 'olderThan' => [18]],
-    
-    // Relationships
-    'with' => ['profile', 'posts'],
-    'with_count' => ['posts'],
-    
-    // Sorting
-    'sort' => 'created_at',
-    'direction' => 'desc',
-    
-    // Pagination (used by paginate/simplePaginate/cursorPaginate)
-    'per_page' => 25,
-    
-    // Limits & Offsets
-    'limit' => 10,
-    'offset' => 5,
-    
-    // Grouping
-    'group_by' => ['status'],
-    'distinct' => true,
-]);
-```
+- `retrieve()` → `get()`
+- `retrievePaginate()` → `paginate()`
+- `deleteByIds()` → `deleteMany()`
 
-### Supported Options
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `filters` | Apply Eloquent filters | `['status' => 'active']` |
-| `scopes` | Apply local scopes | `['active', 'type' => ['admin']]` |
-| `with` | Eager load relations | `['profile']` |
-| `with_count` | Count relations | `['comments']` |
-| `sort` | Order by column | `'created_at'` |
-| `direction` | Order direction | `'desc'` |
-| `per_page` | Items per page | `15` |
-| `limit` | Limit results | `10` |
-| `offset` | Offset results | `5` |
-| `distinct` | Distinct selection | `true` |
-| `joins` | Join tables | `['posts' => ['users.id', '=', 'posts.user_id']]` |
-
-> [!NOTE]
-> To use `filters`, your Eloquent Model must use the `Filterable` trait (typically from `tucker-eric/eloquentfilter`).
-
+If your app still uses old names, update method calls accordingly.
 
 ---
 
@@ -264,42 +332,30 @@ $users = $this->users->get(['id', 'name', 'email'], [
 
 ```bash
 composer test          # Run tests
-composer lint          # Fix code style
-composer rector        # Apply refactorings
+composer test:coverage # Run tests with coverage
+composer lint          # Fix coding style
+composer lint:test     # Check coding style only
+composer rector        # Apply Rector rules
+composer rector:dry    # Preview Rector changes
 ```
 
 ---
 
-## Related Packages
+## Contributing
 
-| Package | Description |
-|---------|-------------|
-| [frontier/frontier](https://github.com/0xKhdr/frontier) | Laravel Starter Kit |
-| [internachi/modular](https://github.com/InterNACHI/modular) | Modular Architecture |
-
----
-
-## 🤝 Contributing
-
-1. Follow PSR-12 coding standards
-2. Use Laravel Pint for code styling
-3. Write tests using Pest
-4. Add strict types to all PHP files
+1. Follow PSR-12 (Laravel Pint)
+2. Use strict types in all PHP files
+3. Add/adjust Pest tests for behavior changes
+4. Keep docs and stubs aligned with public API
 
 ---
 
-## 📄 License
+## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## 👤 Author
+## Author
 
 **Mohamed Khedr** — [0xkhdr@gmail.com](mailto:0xkhdr@gmail.com)
-
----
-
-<p align="center">
-  Made with ❤️ for the Laravel community
-</p>
